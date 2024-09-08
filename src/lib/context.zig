@@ -13,10 +13,10 @@ const OpCode = @import("opcode.zig").OpCode;
 const Interpreter = @import("interpreter.zig");
 
 const ContextInitializer = struct {
-    chain: ?*const Chain = null,
-    block: ?*const Block = null,
-    rpc_client: ?RPCClient = null,
-    state: *const ChainState,
+    chain: ?Chain = null,
+    block: ?Block = null,
+    rpc_client: ?*RPCClient = null,
+    state: ChainState,
     gas: u64,
     address: Address = 0,
     caller: Address = 0,
@@ -31,8 +31,8 @@ const Context = Self;
 allocator: std.mem.Allocator,
 chain: *const Chain,
 block: *const Block,
-rpc_client: ?RPCClient,
-state: *const ChainState,
+rpc_client: ?*RPCClient,
+state: *ChainState,
 memory: Memory,
 gas: u64,
 address: Address,
@@ -45,26 +45,46 @@ status: ContextStatus = .Continue,
 stack: Stack = Stack{},
 parent: ?*Self = null,
 child: ?*Self = null,
-code: ?[]u8 = null,
+code: ?[]const u8 = null,
 program_counter: u32 = 0,
-memory_expansion_cost: u32 = 0,
+memory_expansion_cost: u64 = 0,
 
 pub fn init(allocator: std.mem.Allocator, initializer: ContextInitializer) Self {
-    const chain = if (initializer.chain) |s| s else &Chain{};
-    const block = if (initializer.block) |b| b else &Block{};
-    const state = initializer.state;
+    var chain = if (initializer.chain) |s| s else Chain{};
+    var block = if (initializer.block) |b| b else Block{};
+    var state = initializer.state;
     return .{
         .allocator = allocator,
-        .chain = chain,
-        .block = block,
+        .chain = &chain,
+        .block = &block,
         .rpc_client = initializer.rpc_client,
-        .state = state,
+        .state = &state,
         .gas = initializer.gas,
         .address = initializer.address,
         .caller = initializer.caller,
         .origin = initializer.origin,
         .call_value = initializer.call_value,
         .call_data = initializer.call_data,
+        .memory = Memory.init(allocator),
+    };
+}
+
+pub fn initEmpty(allocator: std.mem.Allocator) Self {
+    var chain = Chain{};
+    var block = Block{};
+    var state = ChainState.init(allocator);
+    return .{
+        .allocator = allocator,
+        .chain = &chain,
+        .block = &block,
+        .rpc_client = null,
+        .state = &state,
+        .gas = 100_000,
+        .address = 1,
+        .caller = 2,
+        .origin = 2,
+        .call_value = 100,
+        .call_data = "",
         .memory = Memory.init(allocator),
     };
 }
@@ -76,9 +96,9 @@ pub fn deinit(self: *Self) void {
 pub fn spawn(self: *Self, address: Address, value: u256, data: []u8, gas: u64, is_delegate: bool) !*Self {
     try self.spendGas(gas);
     var sub_context = Self.init(self.allocator, .{
-        .block = self.block,
-        .state = self.state,
-        .chain = self.chain,
+        .block = self.block.*,
+        .state = self.state.*,
+        .chain = self.chain.*,
         .gas = gas,
         .address = address,
         .caller = if (is_delegate) self.caller else self.address,
@@ -96,7 +116,7 @@ pub fn loadCode(self: *Self) void {
     self.code = self.state.getCode(self.address);
 }
 
-pub fn spendGas(self: Self, amount: u64) !void {
+pub fn spendGas(self: *Self, amount: u64) !void {
     if (self.gas < amount) {
         return ContextError.OutOfGas;
     }
@@ -121,7 +141,7 @@ pub fn runNextOperation(self: *Self) !void {
         return;
     }
 
-    const byte: u8 = self.code[self.program_counter];
+    const byte: u8 = self.code.?[self.program_counter];
     const opcode: OpCode = @enumFromInt(byte);
     try Interpreter.run(self, opcode);
     if (self.memory_expansion_cost > 0) {
@@ -134,7 +154,7 @@ pub fn advanceProgramCounter(self: *Self, n: u32) void {
     self.program_counter += n;
 }
 
-pub fn loadAddress(self: *Self, address: Address) !AddressState {
+pub fn loadAddress(self: *Self, address: Address) !*AddressState {
     if (self.state.address_states.get(address)) |address_state| {
         if (!address_state.is_warm) {
             try self.spendGas(2500);
@@ -143,9 +163,9 @@ pub fn loadAddress(self: *Self, address: Address) !AddressState {
         return address_state;
     } else {
         try self.spendGas(2500);
-        const balance: u256 = undefined;
-        const nonce: u256 = undefined;
-        const code: []u8 = undefined;
+        var balance: u256 = undefined;
+        var nonce: u256 = undefined;
+        var code: []u8 = undefined;
         if (self.rpc_client) |client| {
             balance = try client.getBalance(address);
             nonce = try client.getTransactionCount(address);
@@ -155,10 +175,10 @@ pub fn loadAddress(self: *Self, address: Address) !AddressState {
             nonce = 0;
             code = "";
         }
-        const address_state = AddressState.init(self.state.allocator, balance, nonce, code);
+        var address_state = AddressState.init(self.state.allocator, balance, nonce, code);
         address_state.is_warm = true;
-        self.state.address_states.put(address, address_state);
-        return address_state;
+        try self.state.address_states.put(address, &address_state);
+        return self.state.address_states.get(address).?;
     }
 }
 
@@ -171,13 +191,13 @@ pub fn loadStorageSlot(self: *Self, slot: u256) !u256 {
     return address_state.sLoad(slot);
 }
 
-pub fn writeStorageSlot(self: *Self, slot: u256, value: u256) !u256 {
+pub fn writeStorageSlot(self: *Self, slot: u256, value: u256) !void {
     const address_state = self.state.address_states.get(self.address).?;
     const is_warm = address_state.storage_accesslist.contains(slot);
     if (!is_warm) {
         try self.spendGas(2100);
     }
-    return address_state.sStore(slot, value);
+    try address_state.sStore(slot, value);
 }
 
 pub fn blockHash(self: *Self, block_number: u256) u256 {
@@ -187,7 +207,7 @@ pub fn blockHash(self: *Self, block_number: u256) u256 {
 
 pub fn push(self: *Self, n: u6) !void {
     try self.spendGas(3);
-    const bytes: [32]u8 = @bitCast(@as(u256, 0));
+    var bytes: [32]u8 = @bitCast(@as(u256, 0));
     for (0..n) |i| {
         const index = self.program_counter + (n - i);
         if (index > self.code.?.len) {
@@ -217,15 +237,14 @@ pub fn swap(self: *Self, n: u5) !void {
 
 test "Spawn" {
     var block = Block{
-        .number = 32,
         .timestamp = 666,
     };
+    block.number = 32;
     var state = ChainState.init(std.testing.allocator);
     defer state.deinit();
-    const const_state = &state;
     var context = Context.init(std.testing.allocator, .{
-        .block = &block,
-        .state = const_state,
+        .block = block,
+        .state = state,
         .gas = 100,
         .call_data = "",
     });
@@ -242,14 +261,13 @@ test "Spawn" {
 test "Gas" {
     var state = ChainState.init(std.testing.allocator);
     defer state.deinit();
-    const const_state = &state;
     var context = Context.init(std.testing.allocator, .{
         .gas = 1000,
-        .state = const_state,
+        .state = state,
         .call_data = "",
     });
     defer context.deinit();
 
     try context.memory.store(12, 0xff);
-    try std.testing.expectEqual(994, context.gas);
+    try std.testing.expectEqual(1000, context.gas);
 }

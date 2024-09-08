@@ -20,3 +20,26 @@ pub const RPCBasicResponse = @import("lib/utils/rpc/rpc_basic_response.zig");
 pub const RPCClient = @import("lib/utils/rpc/rpc_client.zig");
 
 pub const EVM = @import("evm.zig");
+
+test {
+    _ = @import("lib/opcode.zig");
+    _ = @import("lib/address.zig").Address;
+    _ = @import("lib/address_state.zig");
+    _ = @import("lib/block.zig");
+    _ = @import("lib/fork.zig").Fork;
+    _ = @import("lib/chain.zig");
+    _ = @import("lib/chain_state.zig");
+    _ = @import("lib/context_error.zig").ContextError;
+    _ = @import("lib/context_status.zig").ContextStatus;
+    _ = @import("lib/context.zig");
+    _ = @import("lib/memory_error.zig").MemoryError;
+    _ = @import("lib/memory.zig");
+    _ = @import("lib/stack_error.zig").StackError;
+    _ = @import("lib/stack.zig");
+    _ = @import("lib/utils/hex.zig");
+    _ = @import("lib/utils/hash.zig");
+    _ = @import("lib/utils/rpc/rpc_error.zig").RPCError;
+    _ = @import("lib/utils/rpc/rpc_basic_response.zig");
+    _ = @import("lib/utils/rpc/rpc_client.zig");
+    _ = @import("evm.zig");
+}

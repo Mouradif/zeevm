@@ -36,20 +36,23 @@ pub fn expandToOffset(self: *Self, offset: u256, increment: u8) !void {
 }
 
 pub fn store(self: *Self, offset: u256, n: u256) !void {
+    const ofs: usize = @truncate(offset);
     try expandToOffset(self, offset, 32);
     const bytes: [32]u8 = @bitCast(@byteSwap(n));
-    try self.buffer.replaceRange(offset, 32, &bytes);
+    try self.buffer.replaceRange(ofs, 32, &bytes);
 }
 
 pub fn storeByte(self: *Self, offset: u256, n: u8) !void {
+    const ofs: usize = @truncate(offset);
     try expandToOffset(self, offset, 1);
-    const bytes: [32]u8 = @bitCast(@byteSwap(n));
-    try self.buffer.replaceRange(offset, 32, &bytes);
+    const bytes: [1]u8 = .{n};
+    try self.buffer.replaceRange(ofs, 1, &bytes);
 }
 
 pub fn load(self: *Self, offset: u256) !u256 {
+    const ofs: usize = @truncate(offset);
     try expandToOffset(self, offset, 32);
-    const word: *[32]u8 = @ptrCast(self.buffer.items[offset .. offset + 32]);
+    const word: *[32]u8 = @ptrCast(self.buffer.items[ofs .. ofs + 32]);
     const output: u256 = @bitCast(word.*);
     return @byteSwap(output);
 }
@@ -58,8 +61,10 @@ pub fn read(self: *Self, offset: u256, len: u256) ![]u8 {
     while (self.buffer.items.len < offset + len) {
         try self.expand();
     }
-    const data = self.allocator.alloc(u8, len);
-    @memcpy(data, self.buffer.items[offset .. offset + len]);
+    const length: usize = @truncate(len);
+    const ofs: usize = @truncate(offset);
+    const data = try self.allocator.alloc(u8, length);
+    @memcpy(data, self.buffer.items[ofs .. ofs + length]);
     return data;
 }
 

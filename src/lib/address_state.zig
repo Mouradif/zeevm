@@ -19,17 +19,17 @@ pub fn init(allocator: std.mem.Allocator, balance: u256, nonce: u256, code: []u8
         .code = code,
         .storage = std.AutoHashMap(u256, u256).init(allocator),
         .transient_storage = std.AutoHashMap(u256, u256).init(allocator),
-        .storage_accesslist = std.AutoArrayHashMap(u256, void).init(allocator),
+        .storage_accesslist = std.AutoHashMap(u256, void).init(allocator),
     };
 }
 
-pub fn sLoad(self: *Self, slot: u256) u256 {
-    self.storage_accesslist.put(slot, {});
+pub fn sLoad(self: *Self, slot: u256) !u256 {
+    try self.storage_accesslist.put(slot, {});
     return self.storage.get(slot) orelse 0;
 }
 
 pub fn sStore(self: *Self, slot: u256, value: u256) !void {
-    self.storage_accesslist.put(slot, {});
+    try self.storage_accesslist.put(slot, {});
     try self.storage.put(slot, value);
 }
 

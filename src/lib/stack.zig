@@ -27,7 +27,7 @@ pub fn dup(self: *Self, i: u8) !void {
     }
     try self.ensureCanGrowBy(1);
     try self.ensureHasAtLeast(i);
-    self.push(self.items[self.head - i]);
+    try self.push(self.items[self.head - i]);
 }
 
 pub fn swap(self: *Self, i: u8) !void {

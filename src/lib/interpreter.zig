@@ -198,7 +198,7 @@ fn signExtend(b: u256, x: u256) u256 {
 
 fn getByte(i: u256, x: u256) u256 {
     if (i > 31) return 0;
-    const shift = (31 - i) * 8;
+    const shift: u8 = @truncate((31 - i) * 8);
     const shifted: u256 = x >> shift;
     const byte: u8 = @truncate(shifted);
     return byte;
@@ -255,7 +255,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             const a: i256 = @bitCast(try context.stack.pop());
             const b: i256 = @bitCast(try context.stack.pop());
             const result = if (b == 0) 0 else @divFloor(a, b);
-            try context.stack.push(result);
+            try context.stack.push(@as(u256, @bitCast(result)));
             context.program_counter += 1;
         },
         .MOD => {
@@ -271,7 +271,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             const a: i256 = @bitCast(try context.stack.pop());
             const b: i256 = @bitCast(try context.stack.pop());
             const result = if (b == 0) 0 else @mod(a, b);
-            try context.stack.push(result);
+            try context.stack.push(@as(u256, @bitCast(result)));
             context.program_counter += 1;
         },
         .ADDMOD => {
@@ -421,7 +421,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             const length = try context.stack.pop();
             const data = try context.memory.read(offset, length);
             const dynamic_cost = 6 * @divFloor(length + 31, 32);
-            try context.spendGas(dynamic_cost);
+            try context.spendGas(@truncate(dynamic_cost));
             defer context.memory.allocator.free(data);
             try context.stack.push(Hash.keccak256(data));
             context.program_counter += 1;
@@ -459,7 +459,8 @@ pub fn run(context: *Context, op: OpCode) !void {
             const i = try context.stack.pop();
             var calldata_bytes: [32]u8 = undefined;
             for (0..32) |index| {
-                calldata_bytes[31 - i] = if (i + index >= context.call_data.len) 0 else context.call_data[i + index];
+                const idx: usize = @truncate(i);
+                calldata_bytes[31 - idx] = if (i + index >= context.call_data.len) 0 else context.call_data[idx + index];
             }
             const word: u256 = @bitCast(calldata_bytes);
             try context.stack.push(word);
@@ -467,7 +468,7 @@ pub fn run(context: *Context, op: OpCode) !void {
         },
         .CALLDATASIZE => {
             try context.spendGas(2);
-            try context.push(@as(u256, @intCast(context.call_data.len)));
+            try context.stack.push(@as(u256, @intCast(context.call_data.len)));
             context.program_counter += 1;
         },
         .CALLDATACOPY => {
@@ -481,14 +482,17 @@ pub fn run(context: *Context, op: OpCode) !void {
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
             const dynamic_cost = 3 * @divFloor(size + 31, 32);
-            try context.spendGas(dynamic_cost);
+            try context.spendGas(@as(u64, @truncate(dynamic_cost)));
             while (context.memory.buffer.items.len < dest_offset + size) {
                 try context.memory.expand();
             }
-            @memset(context.memory.buffer.items[dest_offset .. dest_offset + size], 0);
+            const dest_start: usize = @truncate(dest_offset);
+            const end: usize = @truncate(dest_offset + size);
+            @memset(context.memory.buffer.items[dest_start..end], 0);
             if (offset < context.call_data.len) {
-                const copiable_size = context.call_data.len - offset;
-                @memcpy(context.memory.buffer.items[dest_offset .. dest_offset + copiable_size], context.call_data[offset .. offset + copiable_size]);
+                const start: usize = @truncate(offset);
+                const copiable_size: usize = @truncate(context.call_data.len - offset);
+                @memcpy(context.memory.buffer.items[dest_start .. dest_start + copiable_size], context.call_data[start .. start + copiable_size]);
             }
             context.program_counter += 1;
         },
@@ -509,15 +513,18 @@ pub fn run(context: *Context, op: OpCode) !void {
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
             const dynamic_cost = 3 * @divFloor(size + 31, 32);
-            try context.spendGas(dynamic_cost);
+            try context.spendGas(@as(u64, @truncate(dynamic_cost)));
             const address_state = try context.loadAddress(context.address);
             while (context.memory.buffer.items.len < dest_offset + size) {
                 try context.memory.expand();
             }
-            @memset(context.memory.buffer.items[dest_offset .. dest_offset + size], 0);
+            const dest_start: usize = @truncate(dest_offset);
+            const u_size: usize = @truncate(size);
+            @memset(context.memory.buffer.items[dest_start .. dest_start + u_size], 0);
             if (offset < address_state.code.len) {
-                const copiable_size = address_state.code.len - offset;
-                @memcpy(context.memory.buffer.items[dest_offset .. dest_offset + copiable_size], address_state.code[offset .. offset + copiable_size]);
+                const start: usize = @truncate(offset);
+                const copiable_size: usize = @truncate(address_state.code.len - offset);
+                @memcpy(context.memory.buffer.items[dest_start .. dest_start + copiable_size], address_state.code[start .. start + copiable_size]);
             }
             context.program_counter += 1;
         },
@@ -531,7 +538,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             const address = try context.stack.pop();
             const addr: u160 = @truncate(address);
             const address_state = try context.loadAddress(addr);
-            try context.push(@as(u256, @intCast(address_state.code.len)));
+            try context.stack.push(@as(u256, @intCast(address_state.code.len)));
             context.program_counter += 1;
         },
         .EXTCODECOPY => {
@@ -547,15 +554,18 @@ pub fn run(context: *Context, op: OpCode) !void {
             const size = try context.stack.pop();
             const dynamic_cost = 3 * @divFloor(size + 31, 32);
             const addr: u160 = @truncate(address);
-            try context.spendGas(dynamic_cost);
+            try context.spendGas(@as(u64, @truncate(dynamic_cost)));
             const address_state = try context.loadAddress(addr);
             while (context.memory.buffer.items.len < dest_offset + size) {
                 try context.memory.expand();
             }
-            @memset(context.memory.buffer.items[dest_offset .. dest_offset + size], 0);
+            const dest_start: usize = @truncate(dest_offset);
+            const u_size: usize = @truncate(size);
+            @memset(context.memory.buffer.items[dest_start .. dest_start + u_size], 0);
             if (offset < address_state.code.len) {
-                const copiable_size = address_state.code.len - offset;
-                @memcpy(context.memory.buffer.items[dest_offset .. dest_offset + copiable_size], address_state.code[offset .. offset + copiable_size]);
+                const start: usize = @truncate(offset);
+                const copiable_size: usize = @truncate(address_state.code.len - offset);
+                @memcpy(context.memory.buffer.items[dest_start .. dest_start + copiable_size], address_state.code[start .. start + copiable_size]);
             }
             context.program_counter += 1;
         },
@@ -577,15 +587,21 @@ pub fn run(context: *Context, op: OpCode) !void {
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
             const dynamic_cost = 3 * @divFloor(size + 31, 32);
-            try context.spendGas(dynamic_cost);
+            try context.spendGas(@as(u64, @truncate(dynamic_cost)));
             while (context.memory.buffer.items.len < dest_offset + size) {
                 try context.memory.expand();
             }
-            @memset(context.memory.buffer.items[dest_offset .. dest_offset + size], 0);
+            const dest_start: usize = @truncate(dest_offset);
+            const u_size: usize = @truncate(size);
+            @memset(context.memory.buffer.items[dest_start .. dest_start + u_size], 0);
             const has_return_data: bool = context.child != null and (context.child.?.status == .Return or context.child.?.status == .Revert);
             if (has_return_data and offset < context.child.?.return_data.len) {
-                const copiable_size = context.child.?.return_data.len - offset;
-                @memcpy(context.memory.buffer.items[dest_offset .. dest_offset + copiable_size], address_state.code[offset .. offset + copiable_size]);
+                const copiable_size: usize = @truncate(context.child.?.return_data.len - offset);
+                const start: usize = @truncate(offset);
+                @memcpy(
+                    context.memory.buffer.items[dest_start .. dest_start + copiable_size],
+                    context.child.?.return_data[start .. start + copiable_size],
+                );
             }
             context.program_counter += 1;
         },
@@ -593,18 +609,18 @@ pub fn run(context: *Context, op: OpCode) !void {
             try context.spendGas(100);
             const address = try context.stack.pop();
             const addr: u160 = @truncate(address);
-            const address_state = try context.loadAddress(addr);
-            try context.push(context.state.codeHash(addr));
+            _ = try context.loadAddress(addr);
+            try context.stack.push(context.state.codeHash(addr));
             context.program_counter += 1;
         },
         .BLOCKHASH => {
             try context.spendGas(20);
-            const block_number = context.stack.pop();
+            const block_number = try context.stack.pop();
             var block_hash: u256 = 0;
             if (block_number < context.block.number and context.block.number - block_number <= 256) {
                 block_hash = context.blockHash(block_number);
             }
-            try context.push(block_hash);
+            try context.stack.push(block_hash);
             context.program_counter += 1;
         },
         .COINBASE => {
@@ -639,7 +655,7 @@ pub fn run(context: *Context, op: OpCode) !void {
         },
         .SELFBALANCE => {
             try context.spendGas(2);
-            const address_state = context.loadAddress(context.address);
+            const address_state = try context.loadAddress(context.address);
             try context.stack.push(address_state.balance);
             context.program_counter += 1;
         },
@@ -717,7 +733,7 @@ pub fn run(context: *Context, op: OpCode) !void {
         .JUMP => {
             try context.spendGas(8);
             const counter = try context.stack.pop();
-            context.program_counter = counter;
+            context.program_counter = @truncate(counter);
         },
         .JUMPI => {
             try context.spendGas(10);
@@ -726,7 +742,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             if (b == 0) {
                 context.program_counter += 1;
             } else {
-                context.program_counter = b;
+                context.program_counter = @truncate(counter);
             }
         },
         .PC => {
@@ -761,7 +777,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             const key = try context.stack.pop();
             const value = try context.stack.pop();
             const address_state = try context.loadAddress(context.address);
-            address_state.tStore(key, value);
+            try address_state.tStore(key, value);
         },
         .MCOPY => {},
         .PUSH0 => {
@@ -842,12 +858,12 @@ pub fn run(context: *Context, op: OpCode) !void {
             }
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
-            const data = try context.memory.read(offset, length);
+            const data = try context.memory.read(offset, size);
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
-            try context.spendGas(dynamic_cost);
+            try context.spendGas(@truncate(dynamic_cost));
             std.debug.print("Log:\n  - {x:0>2}", .{data});
-            self.program_counter += 1;
+            context.program_counter += 1;
         },
         .LOG1 => {
             try context.spendGas(750);
@@ -859,12 +875,12 @@ pub fn run(context: *Context, op: OpCode) !void {
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
             const topic0 = try context.stack.pop();
-            const data = try context.memory.read(offset, length);
+            const data = try context.memory.read(offset, size);
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
-            try context.spendGas(dynamic_cost);
+            try context.spendGas(@truncate(dynamic_cost));
             std.debug.print("Log(0x{x:0>64}):\n  - {x:0>2}", .{ topic0, data });
-            self.program_counter += 1;
+            context.program_counter += 1;
         },
         .LOG2 => {
             try context.spendGas(1125);
@@ -877,11 +893,11 @@ pub fn run(context: *Context, op: OpCode) !void {
             const size = try context.stack.pop();
             const topic0 = try context.stack.pop();
             const topic1 = try context.stack.pop();
-            const data = try context.memory.read(offset, length);
+            const data = try context.memory.read(offset, size);
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
-            try context.spendGas(dynamic_cost);
-            self.program_counter += 1;
+            try context.spendGas(@truncate(dynamic_cost));
+            context.program_counter += 1;
             std.debug.print("Log(\n  0x{x:0>64},\n  0x{x:0>64},\n):\n  - {x:0>2}", .{ topic0, topic1, data });
         },
         .LOG3 => {
@@ -896,11 +912,11 @@ pub fn run(context: *Context, op: OpCode) !void {
             const topic0 = try context.stack.pop();
             const topic1 = try context.stack.pop();
             const topic2 = try context.stack.pop();
-            const data = try context.memory.read(offset, length);
+            const data = try context.memory.read(offset, size);
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
-            try context.spendGas(dynamic_cost);
-            self.program_counter += 1;
+            try context.spendGas(@truncate(dynamic_cost));
+            context.program_counter += 1;
             std.debug.print("Log(\n  0x{x:0>64},\n  0x{x:0>64},\n  0x{x:0>64},\n):\n  - {x:0>2}", .{ topic0, topic1, topic2, data });
         },
         .LOG4 => {
@@ -916,23 +932,23 @@ pub fn run(context: *Context, op: OpCode) !void {
             const topic1 = try context.stack.pop();
             const topic2 = try context.stack.pop();
             const topic3 = try context.stack.pop();
-            const data = try context.memory.read(offset, length);
+            const data = try context.memory.read(offset, size);
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
-            try context.spendGas(dynamic_cost);
-            self.program_counter += 1;
+            try context.spendGas(@truncate(dynamic_cost));
+            context.program_counter += 1;
             std.debug.print("Log(\n  0x{x:0>64},\n  0x{x:0>64},\n  0x{x:0>64},\n  0x{x:0>64},\n):\n  - {x:0>2}", .{ topic0, topic1, topic2, topic3, data });
         },
         .CREATE => { // @TODO
             try context.spendGas(32000);
-            const value = try context.pop();
-            const offset = try context.pop();
-            const size = try context.pop();
+            const value = try context.stack.pop();
+            const offset = try context.stack.pop();
+            const size = try context.stack.pop();
             _ = value;
             _ = offset;
             _ = size;
             try context.stack.push(0);
-            self.program_counter += 1;
+            context.program_counter += 1;
         },
         .CALL => { // @TODO
             try context.spendGas(100);
@@ -951,7 +967,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             _ = ret_offset;
             _ = ret_size;
             try context.stack.push(1);
-            self.program_counter += 1;
+            context.program_counter += 1;
         },
         .CALLCODE => {
             try context.spendGas(100);
@@ -970,7 +986,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             _ = ret_offset;
             _ = ret_size;
             try context.stack.push(1);
-            self.program_counter += 1;
+            context.program_counter += 1;
         },
         .RETURN => {
             const initial_memory_cost = context.memory.cost();
@@ -980,7 +996,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             }
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
-            context.return_data = context.memory.read(offset, size);
+            context.return_data = try context.memory.read(offset, size);
             context.status = .Return;
         },
         .DELEGATECALL => {
@@ -998,20 +1014,20 @@ pub fn run(context: *Context, op: OpCode) !void {
             _ = ret_offset;
             _ = ret_size;
             try context.stack.push(1);
-            self.program_counter += 1;
+            context.program_counter += 1;
         },
         .CREATE2 => {
             try context.spendGas(32000);
-            const value = try context.pop();
-            const offset = try context.pop();
-            const size = try context.pop();
-            const salt = try context.pop();
+            const value = try context.stack.pop();
+            const offset = try context.stack.pop();
+            const size = try context.stack.pop();
+            const salt = try context.stack.pop();
             _ = value;
             _ = offset;
             _ = size;
             _ = salt;
             try context.stack.push(0);
-            self.program_counter += 1;
+            context.program_counter += 1;
         },
         .STATICCALL => {
             try context.spendGas(100);
@@ -1028,7 +1044,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             _ = ret_offset;
             _ = ret_size;
             try context.stack.push(1);
-            self.program_counter += 1;
+            context.program_counter += 1;
         },
         .REVERT => {
             const initial_memory_cost = context.memory.cost();
@@ -1038,7 +1054,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             }
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
-            context.return_data = context.memory.read(offset, size);
+            context.return_data = try context.memory.read(offset, size);
             context.status = .Revert;
         },
         .INVALID => {

@@ -6,12 +6,13 @@ const Hash = @import("utils/hash.zig");
 const Self = @This();
 
 allocator: std.mem.Allocator,
-address_states: std.AutoHashMap(Address, AddressState),
+address_states: *std.AutoHashMap(Address, *AddressState),
 
 pub fn init(allocator: std.mem.Allocator) Self {
+    var address_states = std.AutoHashMap(Address, *AddressState).init(allocator);
     const state: Self = .{
         .allocator = allocator,
-        .address_states = std.AutoHashMap(Address, AddressState).init(allocator),
+        .address_states = &address_states,
     };
     return state;
 }
@@ -52,7 +53,7 @@ test "Get code returns code for known contract" {
     }
     var address_state = AddressState.init(std.testing.allocator, 0, 0, code);
     defer address_state.deinit();
-    try state.address_states.put(0, address_state);
+    try state.address_states.put(0, &address_state);
 
     const retrieved_code = state.getCode(0);
     try std.testing.expectEqual(10, retrieved_code.len);
@@ -73,7 +74,7 @@ test "Codehash returns code hash" {
     }
     var address_state = AddressState.init(std.testing.allocator, 0, 0, code);
     defer address_state.deinit();
-    try state.address_states.put(0, address_state);
+    try state.address_states.put(0, &address_state);
 
     const retrieved_code_hash = state.codeHash(0);
     try std.testing.expectEqual(code_hash, retrieved_code_hash);

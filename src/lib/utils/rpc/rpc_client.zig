@@ -20,44 +20,42 @@ const Hex = struct {
     }
 
     fn parseHexByte(high: u8, low: u8) u8 {
-        return parseHexDigit(high) << 4 + parseHexDigit(low);
+        const a: u8 = parseHexDigit(high) << 4;
+        const b: u8 = parseHexDigit(low);
+        return a | b;
     }
 
     pub fn parseStaticBuffer(input: []const u8, length: usize, buffer: []u8) void {
         const start: usize = if (input.len > 1 and input[1] == 'x') 2 else 0;
-        const add_zero = @mod(input.len, 2);
-        const input_byte_length = @divFloor(input.len + add_zero - start, 2);
-        const extra_zeroes = length - input_byte_length;
+        const leading_zero = @mod(input.len, 2);
+        const byteLength = @divFloor(input.len - start + leading_zero, 2);
+        const leading_zero_bytes = length - byteLength;
 
         var i: usize = 0;
-        while (i < extra_zeroes) : (i += 1) {
-            buffer[i] = 0;
-        }
+        var j: usize = 0;
         while (i < length) : (i += 1) {
-            if (i == 0 and add_zero == 1) {
-                buffer[i] = parseHexByte(0, input[start]);
-                continue;
-            }
-            const index = (i - extra_zeroes) * 2 + start - add_zero;
-            if (index >= input.len) {
+            if (i < leading_zero_bytes) {
                 buffer[i] = 0;
                 continue;
             }
-            const c1 = input[index];
-            if (index + 1 >= input.len) {
-                buffer[i] = parseHexByte(0, c1);
+            if (j == 0 and leading_zero == 1) {
+                buffer[i] = parseHexByte('0', input[j + start]);
+                j += 1;
                 continue;
             }
-            const c2 = input[index + 1];
+            const c1 = input[j + start];
+            const c2 = input[j + start + 1];
             buffer[i] = parseHexByte(c1, c2);
+            j += 2;
         }
     }
 
-    pub fn parseUint(input: []const u8, T: type) T {
+    pub fn parseUint(allocator: std.mem.Allocator, input: []const u8, T: type) !T {
         const byteSize = @divFloor(@bitSizeOf(T), 8);
-        var buffer: [byteSize]u8 = undefined;
-        parseStaticBuffer(input, byteSize, buffer[0..byteSize]);
-        return @byteSwap(@as(T, @bitCast(buffer)));
+        const buffer: []u8 = try allocator.alloc(u8, byteSize);
+        defer allocator.free(buffer);
+        parseStaticBuffer(input, byteSize, buffer);
+        return @byteSwap(@as(T, @bitCast(@as([byteSize]u8, buffer[0..byteSize].*))));
     }
 };
 
@@ -108,20 +106,19 @@ pub fn getCode(self: *RPCClient, address: u160) ![]u8 {
     const length = @divFloor(code_response.len - 2, 2);
     const code = try self.allocator.alloc(u8, length);
     Hex.parseStaticBuffer(code_response, length, code);
-    std.debug.print("Code: {x}", .{code});
     return code;
 }
 
 fn makeBasicNumericRPCRequest(self: *RPCClient, req: []const u8, T: type) !T {
     var parsed_response = try self.makeBasicRPCRequest(req);
     defer parsed_response.deinit();
-    return Hex.parseUint(parsed_response.parsed.value.result, T);
+    return try Hex.parseUint(self.allocator, parsed_response.parsed.value.result, T);
 }
 
 fn makeAddressNumericRPCRequest(self: *RPCClient, req: []const u8, address: u160, T: type) !T {
     var parsed_response = try self.makeAddressRPCRequest(req, address);
     defer parsed_response.deinit();
-    return Hex.parseUint(parsed_response.parsed.value.result, T);
+    return try Hex.parseUint(self.allocator, parsed_response.parsed.value.result, T);
 }
 
 fn makeBasicRPCRequest(self: *RPCClient, req: []const u8) !RPCParsedResponse(RPCBasicResponse) {
