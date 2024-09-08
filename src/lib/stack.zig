@@ -1,27 +1,26 @@
 const std = @import("std");
-const StackError = @import("./stack_error.zig").StackError;
+const StackError = @import("stack_error.zig").StackError;
 
 const MAX_STACK_SIZE = 1024;
-const Self = @This();
-const Stack = Self;
+const Stack = @This();
 
 items: [MAX_STACK_SIZE]u256 = .{0} ** 1024,
 head: u16 = 0,
 
-pub fn zeroOut(self: *Self) void {
+pub fn zeroOut(self: *Stack) void {
     for (0..self.head) |i| {
         self.items[i] = 0;
     }
     self.head = 0;
 }
 
-pub fn push(self: *Self, n: u256) !void {
+pub fn push(self: *Stack, n: u256) !void {
     try self.ensureCanGrowBy(1);
     self.items[self.head] = n;
     self.head += 1;
 }
 
-pub fn dup(self: *Self, i: u8) !void {
+pub fn dup(self: *Stack, i: u8) !void {
     if (i == 0) {
         return StackError.Illegal;
     }
@@ -30,7 +29,7 @@ pub fn dup(self: *Self, i: u8) !void {
     try self.push(self.items[self.head - i]);
 }
 
-pub fn swap(self: *Self, i: u8) !void {
+pub fn swap(self: *Stack, i: u8) !void {
     if (i == 0) {
         return StackError.Illegal;
     }
@@ -44,11 +43,11 @@ pub fn swap(self: *Self, i: u8) !void {
     self.items[index_a] ^= self.items[index_b];
 }
 
-pub fn peek(self: *Self) u256 {
+pub fn peek(self: *Stack) u256 {
     return self.items[self.head - 1];
 }
 
-pub fn pop(self: *Self) !u256 {
+pub fn pop(self: *Stack) !u256 {
     if (self.head == 0) {
         return StackError.Underflow;
     }
@@ -58,19 +57,19 @@ pub fn pop(self: *Self) !u256 {
     return item;
 }
 
-pub fn ensureHasAtLeast(self: *Self, n: u10) !void {
+pub fn ensureHasAtLeast(self: *Stack, n: u10) !void {
     if (n > self.head) {
         return StackError.Underflow;
     }
 }
 
-pub fn ensureCanGrowBy(self: *Self, n: u10) !void {
+pub fn ensureCanGrowBy(self: *Stack, n: u10) !void {
     if (self.head + n >= MAX_STACK_SIZE) {
         return StackError.Overflow;
     }
 }
 
-pub fn dump(self: *Self, allocator: std.mem.Allocator) ![]u256 {
+pub fn dump(self: *Stack, allocator: std.mem.Allocator) ![]u256 {
     const stack: []u256 = try allocator.alloc(u256, self.head);
     for (stack, 0..self.head) |*item, i| {
         item.* = self.items[i];

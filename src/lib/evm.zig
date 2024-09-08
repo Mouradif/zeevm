@@ -1,14 +1,14 @@
 const std = @import("std");
-const Context = @import("lib/context.zig");
-const Address = @import("lib/address.zig").Address;
-const AddressState = @import("lib/address_state.zig");
-const Block = @import("lib/block.zig");
-const Chain = @import("lib/chain.zig");
-const ChainState = @import("lib/chain_state.zig");
-const RPCClient = @import("lib/utils/rpc//rpc_client.zig");
-const Hex = @import("lib/utils/hex.zig");
+const Context = @import("context.zig");
+const Address = @import("address.zig").Address;
+const AddressState = @import("address_state.zig");
+const Block = @import("block.zig");
+const Chain = @import("chain.zig");
+const ChainState = @import("chain_state.zig");
+const RPCClient = @import("../utils/rpc/rpc_client.zig");
+const Hex = @import("../utils/hex.zig");
 
-const Self = @This();
+const EVM = @This();
 
 const EVMInitializer = struct {
     context: *Context,
@@ -34,7 +34,7 @@ rpc_client: ?RPCClient = null,
 fork_url: ?[]const u8,
 fork_block: u64,
 
-pub fn init(allocator: std.mem.Allocator, initializer: EVMInitializer) Self {
+pub fn init(allocator: std.mem.Allocator, initializer: EVMInitializer) EVM {
     return .{
         .allocator = allocator,
         .context = initializer.context,
@@ -43,7 +43,7 @@ pub fn init(allocator: std.mem.Allocator, initializer: EVMInitializer) Self {
     };
 }
 
-pub fn fork_init(allocator: std.mem.Allocator, initializer: EVMForkInitializer) !Self {
+pub fn fork_init(allocator: std.mem.Allocator, initializer: EVMForkInitializer) !EVM {
     var client = try RPCClient.init(allocator, initializer.fork_url);
     const block = try allocator.create(Block);
     block.number = if (initializer.block_number == 0) try client.blockNumber() else initializer.block_number;
@@ -67,13 +67,13 @@ pub fn fork_init(allocator: std.mem.Allocator, initializer: EVMForkInitializer) 
     };
 }
 
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: *EVM) void {
     if (self.rpc_client) |client| {
         client.deinit();
     }
 }
 
-pub fn initContext(self: *Self) !void {
+pub fn initContext(self: *EVM) !void {
     var client = self.rpc_client.?;
     const address = self.context.address;
     const code = try client.getCode(address);
@@ -90,7 +90,7 @@ pub fn initContext(self: *Self) !void {
     try self.context.state.address_states.put(address, &address_state);
 }
 
-pub fn run(self: *Self, run_params: EVMRunParams) ![]u8 {
+pub fn run(self: *EVM, run_params: EVMRunParams) ![]u8 {
     self.context.address = run_params.address;
     self.context.caller = run_params.caller;
     self.context.origin = run_params.origin;
@@ -114,17 +114,20 @@ pub fn run(self: *Self, run_params: EVMRunParams) ![]u8 {
     return self.context.return_data;
 }
 
-test "Simple addition" {
+test "EVM: Simple addition" {
     const code_string = "0x60016004015f5260205ff3";
     const code = try std.testing.allocator.alloc(u8, 11);
     defer std.testing.allocator.free(code);
     Hex.parseStaticBuffer(code_string, 11, code);
-    var context = Context.initEmpty(std.testing.allocator);
+    var context = try Context.initEmpty(std.testing.allocator);
+    defer context.deinit();
     var address_state = AddressState.init(std.testing.allocator, 0, 0, code);
     try context.state.address_states.put(1, &address_state);
-    var evm = Self.init(std.testing.allocator, .{
+    var evm = EVM.init(std.testing.allocator, .{
         .context = &context,
     });
+    defer evm.deinit();
     const return_data = try evm.run(.{});
+    defer std.testing.allocator.free(return_data);
     try std.testing.expectEqual(32, return_data.len);
 }

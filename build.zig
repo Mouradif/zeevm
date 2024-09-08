@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) void {
     lib.root_module.addImport("zee", zee_module);
 
     const lib_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/root.zig"),
+        .root_source_file = b.path("src/test.zig"),
         .target = target,
         .optimize = optimize,
     });

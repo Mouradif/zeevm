@@ -2,62 +2,9 @@ const std = @import("std");
 const RPCError = @import("rpc_error.zig").RPCError;
 const RPCBasicResponse = @import("rpc_basic_response.zig");
 const RPCParsedResponse = @import("rpc_parsed_response.zig").RPCParsedResponse;
+const Hex = @import("../hex.zig");
 
 const RPCClient = @This();
-
-const Hex = struct {
-    fn parseHexDigit(digit: u8) u8 {
-        if (digit >= '0' and digit <= '9') {
-            return digit - '0';
-        }
-        if (digit >= 'a' and digit <= 'f') {
-            return digit + 10 - 'a';
-        }
-        if (digit >= 'A' and digit <= 'F') {
-            return digit + 10 - 'A';
-        }
-        return 0;
-    }
-
-    fn parseHexByte(high: u8, low: u8) u8 {
-        const a: u8 = parseHexDigit(high) << 4;
-        const b: u8 = parseHexDigit(low);
-        return a | b;
-    }
-
-    pub fn parseStaticBuffer(input: []const u8, length: usize, buffer: []u8) void {
-        const start: usize = if (input.len > 1 and input[1] == 'x') 2 else 0;
-        const leading_zero = @mod(input.len, 2);
-        const byteLength = @divFloor(input.len - start + leading_zero, 2);
-        const leading_zero_bytes = length - byteLength;
-
-        var i: usize = 0;
-        var j: usize = 0;
-        while (i < length) : (i += 1) {
-            if (i < leading_zero_bytes) {
-                buffer[i] = 0;
-                continue;
-            }
-            if (j == 0 and leading_zero == 1) {
-                buffer[i] = parseHexByte('0', input[j + start]);
-                j += 1;
-                continue;
-            }
-            const c1 = input[j + start];
-            const c2 = input[j + start + 1];
-            buffer[i] = parseHexByte(c1, c2);
-            j += 2;
-        }
-    }
-
-    pub fn parseUint(allocator: std.mem.Allocator, input: []const u8, T: type) !T {
-        const byteSize = @divFloor(@bitSizeOf(T), 8);
-        const buffer: []u8 = try allocator.alloc(u8, byteSize);
-        defer allocator.free(buffer);
-        parseStaticBuffer(input, byteSize, buffer);
-        return @byteSwap(@as(T, @bitCast(@as([byteSize]u8, buffer[0..byteSize].*))));
-    }
-};
 
 allocator: std.mem.Allocator,
 http_client: std.http.Client,
@@ -189,7 +136,7 @@ fn makeAddressRPCRequest(self: *RPCClient, req: []const u8, address: u160) !RPCP
 
 const rpc = "http://geth.metal:10545";
 
-test "Get Block Number" {
+test "RPC Client: Get Block Number" {
     var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
     defer rpc_client.deinit();
 
@@ -197,7 +144,7 @@ test "Get Block Number" {
     try std.testing.expect(num > 0);
 }
 
-test "Get Chain ID" {
+test "RPC Client: Get Chain ID" {
     var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
     defer rpc_client.deinit();
 
@@ -205,7 +152,7 @@ test "Get Chain ID" {
     try std.testing.expectEqual(1, num);
 }
 
-test "Get Balance" {
+test "RPC Client: Get Balance" {
     var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
     defer rpc_client.deinit();
 
@@ -213,7 +160,7 @@ test "Get Balance" {
     try std.testing.expectEqual(989526957132020483, num);
 }
 
-test "Get Nonce" {
+test "RPC Client: Get Nonce" {
     var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
     defer rpc_client.deinit();
 
@@ -221,7 +168,7 @@ test "Get Nonce" {
     try std.testing.expectEqual(454, num);
 }
 
-test "Get Code" {
+test "RPC Client: Get Code" {
     var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
     defer rpc_client.deinit();
 

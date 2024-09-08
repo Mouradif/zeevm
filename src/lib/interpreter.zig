@@ -1,8 +1,8 @@
 const std = @import("std");
 const OpCode = @import("opcode.zig").OpCode;
 const Context = @import("context.zig");
-const Hash = @import("utils/hash.zig");
 const AddressState = @import("address_state.zig");
+const Hash = @import("../utils/hash.zig");
 
 fn signExtend(b: u256, x: u256) u256 {
     switch (b) {
@@ -226,21 +226,18 @@ pub fn run(context: *Context, op: OpCode) !void {
             const a = try context.stack.pop();
             const b = try context.stack.pop();
             try context.stack.push(a +% b);
-            context.program_counter += 1;
         },
         .MUL => {
             try context.spendGas(5);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
             try context.stack.push(a *% b);
-            context.program_counter += 1;
         },
         .SUB => {
             try context.spendGas(5);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
             try context.stack.push(a -% b);
-            context.program_counter += 1;
         },
         .DIV => {
             try context.spendGas(5);
@@ -248,7 +245,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             const b = try context.stack.pop();
             const result = if (b == 0) 0 else @divFloor(a, b);
             try context.stack.push(result);
-            context.program_counter += 1;
         },
         .SDIV => {
             try context.spendGas(5);
@@ -256,7 +252,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             const b: i256 = @bitCast(try context.stack.pop());
             const result = if (b == 0) 0 else @divFloor(a, b);
             try context.stack.push(@as(u256, @bitCast(result)));
-            context.program_counter += 1;
         },
         .MOD => {
             try context.spendGas(5);
@@ -264,7 +259,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             const b = try context.stack.pop();
             const result = if (b == 0) 0 else @mod(a, b);
             try context.stack.push(result);
-            context.program_counter += 1;
         },
         .SMOD => {
             try context.spendGas(5);
@@ -272,7 +266,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             const b: i256 = @bitCast(try context.stack.pop());
             const result = if (b == 0) 0 else @mod(a, b);
             try context.stack.push(@as(u256, @bitCast(result)));
-            context.program_counter += 1;
         },
         .ADDMOD => {
             try context.spendGas(8);
@@ -281,7 +274,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             const N = try context.stack.pop();
             const result = if (N == 0) 0 else @mod(a + b, N);
             try context.stack.push(result);
-            context.program_counter += 1;
         },
         .MULMOD => {
             try context.spendGas(8);
@@ -290,110 +282,94 @@ pub fn run(context: *Context, op: OpCode) !void {
             const N = try context.stack.pop();
             const result = if (N == 0) 0 else @mod(a * b, N);
             try context.stack.push(result);
-            context.program_counter += 1;
         },
         .EXP => {
             try context.spendGas(10);
             const a = try context.stack.pop();
             const exponent = try context.stack.pop();
             try context.stack.push(std.math.pow(u256, a, exponent));
-            context.program_counter += 1;
         },
         .SIGNEXTEND => {
             try context.spendGas(5);
             const b = try context.stack.pop();
             const x = try context.stack.pop();
             try context.stack.push(signExtend(b, x));
-            context.program_counter += 1;
         },
         .LT => {
             try context.spendGas(3);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
             try context.stack.push(@intFromBool(a < b));
-            context.program_counter += 1;
         },
         .GT => {
             try context.spendGas(3);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
             try context.stack.push(@intFromBool(a > b));
-            context.program_counter += 1;
         },
         .SLT => {
             try context.spendGas(3);
             const a: i256 = @bitCast(try context.stack.pop());
             const b: i256 = @bitCast(try context.stack.pop());
             try context.stack.push(@intFromBool(a < b));
-            context.program_counter += 1;
         },
         .SGT => {
             try context.spendGas(3);
             const a: i256 = @bitCast(try context.stack.pop());
             const b: i256 = @bitCast(try context.stack.pop());
             try context.stack.push(@intFromBool(a > b));
-            context.program_counter += 1;
         },
         .EQ => {
             try context.spendGas(3);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
             try context.stack.push(@intFromBool(a == b));
-            context.program_counter += 1;
         },
         .ISZERO => {
             try context.spendGas(3);
             const a = try context.stack.pop();
             try context.stack.push(@intFromBool(a == 0));
-            context.program_counter += 1;
         },
         .AND => {
             try context.spendGas(3);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
             try context.stack.push(a & b);
-            context.program_counter += 1;
         },
         .OR => {
             try context.spendGas(3);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
             try context.stack.push(a | b);
-            context.program_counter += 1;
         },
         .XOR => {
             try context.spendGas(3);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
             try context.stack.push(a ^ b);
-            context.program_counter += 1;
         },
         .NOT => {
             try context.spendGas(3);
             const a = try context.stack.pop();
             try context.stack.push(~a);
-            context.program_counter += 1;
         },
         .BYTE => {
             try context.spendGas(3);
             const i = try context.stack.pop();
             const x = try context.stack.pop();
             try context.stack.push(getByte(i, x));
-            context.program_counter += 1;
         },
         .SHL => {
             try context.spendGas(3);
             const shift = try context.stack.pop();
             const value = try context.stack.pop();
             try context.stack.push(leftShifted(shift, value));
-            context.program_counter += 1;
         },
         .SHR => {
             try context.spendGas(3);
             const shift = try context.stack.pop();
             const value = try context.stack.pop();
             try context.stack.push(rightShifted(shift, value));
-            context.program_counter += 1;
         },
         .SAR => {
             try context.spendGas(3);
@@ -408,7 +384,6 @@ pub fn run(context: *Context, op: OpCode) !void {
                 result |= mask;
             }
             try context.stack.push(result);
-            context.program_counter += 1;
         },
         .KECCAK256 => {
             try context.spendGas(30);
@@ -424,12 +399,10 @@ pub fn run(context: *Context, op: OpCode) !void {
             try context.spendGas(@truncate(dynamic_cost));
             defer context.memory.allocator.free(data);
             try context.stack.push(Hash.keccak256(data));
-            context.program_counter += 1;
         },
         .ADDRESS => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.address)));
-            context.program_counter += 1;
         },
         .BALANCE => {
             try context.spendGas(100);
@@ -437,22 +410,18 @@ pub fn run(context: *Context, op: OpCode) !void {
             const addr: u160 = @truncate(address);
             const address_state = try context.loadAddress(addr);
             try context.stack.push(address_state.balance);
-            context.program_counter += 1;
         },
         .ORIGIN => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.origin)));
-            context.program_counter += 1;
         },
         .CALLER => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.caller)));
-            context.program_counter += 1;
         },
         .CALLVALUE => {
             try context.spendGas(2);
             try context.stack.push(context.call_value);
-            context.program_counter += 1;
         },
         .CALLDATALOAD => {
             try context.spendGas(3);
@@ -464,12 +433,10 @@ pub fn run(context: *Context, op: OpCode) !void {
             }
             const word: u256 = @bitCast(calldata_bytes);
             try context.stack.push(word);
-            context.program_counter += 1;
         },
         .CALLDATASIZE => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.call_data.len)));
-            context.program_counter += 1;
         },
         .CALLDATACOPY => {
             try context.spendGas(3);
@@ -494,13 +461,11 @@ pub fn run(context: *Context, op: OpCode) !void {
                 const copiable_size: usize = @truncate(context.call_data.len - offset);
                 @memcpy(context.memory.buffer.items[dest_start .. dest_start + copiable_size], context.call_data[start .. start + copiable_size]);
             }
-            context.program_counter += 1;
         },
         .CODESIZE => {
             try context.spendGas(2);
             const address_state = try context.loadAddress(context.address);
             try context.stack.push(@as(u256, @intCast(address_state.code.len)));
-            context.program_counter += 1;
         },
         .CODECOPY => {
             try context.spendGas(3);
@@ -526,12 +491,10 @@ pub fn run(context: *Context, op: OpCode) !void {
                 const copiable_size: usize = @truncate(address_state.code.len - offset);
                 @memcpy(context.memory.buffer.items[dest_start .. dest_start + copiable_size], address_state.code[start .. start + copiable_size]);
             }
-            context.program_counter += 1;
         },
         .GASPRICE => {
             try context.spendGas(2);
             try context.stack.push(context.block.base_fee);
-            context.program_counter += 1;
         },
         .EXTCODESIZE => {
             try context.spendGas(100);
@@ -539,7 +502,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             const addr: u160 = @truncate(address);
             const address_state = try context.loadAddress(addr);
             try context.stack.push(@as(u256, @intCast(address_state.code.len)));
-            context.program_counter += 1;
         },
         .EXTCODECOPY => {
             try context.spendGas(100);
@@ -567,14 +529,12 @@ pub fn run(context: *Context, op: OpCode) !void {
                 const copiable_size: usize = @truncate(address_state.code.len - offset);
                 @memcpy(context.memory.buffer.items[dest_start .. dest_start + copiable_size], address_state.code[start .. start + copiable_size]);
             }
-            context.program_counter += 1;
         },
         .RETURNDATASIZE => {
             try context.spendGas(2);
             const has_return_data: bool = context.child != null and (context.child.?.status == .Return or context.child.?.status == .Revert);
             const return_data_size: u256 = if (has_return_data) context.child.?.return_data.len else 0;
             try context.stack.push(return_data_size);
-            context.program_counter += 1;
         },
         .RETURNDATACOPY => {
             try context.spendGas(3);
@@ -603,7 +563,6 @@ pub fn run(context: *Context, op: OpCode) !void {
                     context.child.?.return_data[start .. start + copiable_size],
                 );
             }
-            context.program_counter += 1;
         },
         .EXTCODEHASH => {
             try context.spendGas(100);
@@ -611,7 +570,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             const addr: u160 = @truncate(address);
             _ = try context.loadAddress(addr);
             try context.stack.push(context.state.codeHash(addr));
-            context.program_counter += 1;
         },
         .BLOCKHASH => {
             try context.spendGas(20);
@@ -621,63 +579,51 @@ pub fn run(context: *Context, op: OpCode) !void {
                 block_hash = context.blockHash(block_number);
             }
             try context.stack.push(block_hash);
-            context.program_counter += 1;
         },
         .COINBASE => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.block.coinbase)));
-            context.program_counter += 1;
         },
         .TIMESTAMP => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.block.timestamp)));
-            context.program_counter += 1;
         },
         .NUMBER => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.block.number)));
-            context.program_counter += 1;
         },
         .PREVRANDAO => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.block.prevrandao)));
-            context.program_counter += 1;
         },
         .GASLIMIT => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.chain.gas_limit)));
-            context.program_counter += 1;
         },
         .CHAINID => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.chain.id)));
-            context.program_counter += 1;
         },
         .SELFBALANCE => {
             try context.spendGas(2);
             const address_state = try context.loadAddress(context.address);
             try context.stack.push(address_state.balance);
-            context.program_counter += 1;
         },
         .BASEFEE => {
             try context.spendGas(2);
             try context.stack.push(context.block.base_fee);
-            context.program_counter += 1;
         },
         .BLOBHASH => { // @TODO implement
             try context.spendGas(3);
             try context.stack.push(0);
-            context.program_counter += 1;
         },
         .BLOBBASEFEE => { // @TODO implement
             try context.spendGas(2);
             try context.stack.push(0);
-            context.program_counter += 1;
         },
         .POP => {
             try context.spendGas(2);
             _ = try context.stack.pop();
-            context.program_counter += 1;
         },
         .MLOAD => {
             try context.spendGas(3);
@@ -689,7 +635,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             const offset = try context.stack.pop();
             const memory_word = try context.memory.load(offset);
             try context.stack.push(memory_word);
-            context.program_counter += 1;
         },
         .MSTORE => {
             try context.spendGas(3);
@@ -701,7 +646,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             const offset = try context.stack.pop();
             const value = try context.stack.pop();
             try context.memory.store(offset, value);
-            context.program_counter += 1;
         },
         .MSTORE8 => {
             try context.spendGas(3);
@@ -714,56 +658,49 @@ pub fn run(context: *Context, op: OpCode) !void {
             const value = try context.stack.pop();
             const byte: u8 = @truncate(value);
             try context.memory.storeByte(offset, byte);
-            context.program_counter += 1;
         },
         .SLOAD => {
             try context.spendGas(100);
             const slot = try context.stack.pop();
             const value = try context.loadStorageSlot(slot);
             try context.stack.push(value);
-            context.program_counter += 1;
         },
         .SSTORE => { // @TODO: Compute initialization gas cost + refunds
             try context.spendGas(100);
             const slot = try context.stack.pop();
             const value = try context.stack.pop();
             try context.writeStorageSlot(slot, value);
-            context.program_counter += 1;
         },
         .JUMP => {
             try context.spendGas(8);
             const counter = try context.stack.pop();
             context.program_counter = @truncate(counter);
+            try context.ensureValidJumpDestination();
         },
         .JUMPI => {
             try context.spendGas(10);
             const counter = try context.stack.pop();
             const b = try context.stack.pop();
-            if (b == 0) {
-                context.program_counter += 1;
-            } else {
+            if (b > 0) {
                 context.program_counter = @truncate(counter);
+                try context.ensureValidJumpDestination();
             }
         },
         .PC => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.program_counter)));
-            context.program_counter += 1;
         },
         .MSIZE => {
             try context.spendGas(2);
             const memory_size: u256 = @intCast(context.memory.buffer.items.len);
             try context.stack.push(memory_size);
-            context.program_counter += 1;
         },
         .GAS => {
             try context.spendGas(2);
             try context.stack.push(@as(u256, @intCast(context.gas)));
-            context.program_counter += 1;
         },
         .JUMPDEST => {
             try context.spendGas(1);
-            context.program_counter += 1;
         },
         .TLOAD => {
             try context.spendGas(100);
@@ -783,7 +720,6 @@ pub fn run(context: *Context, op: OpCode) !void {
         .PUSH0 => {
             try context.spendGas(2);
             try context.push(0);
-            context.program_counter += 1;
         },
         .PUSH1 => try context.push(1),
         .PUSH2 => try context.push(2),
@@ -863,7 +799,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
             try context.spendGas(@truncate(dynamic_cost));
             std.debug.print("Log:\n  - {x:0>2}", .{data});
-            context.program_counter += 1;
         },
         .LOG1 => {
             try context.spendGas(750);
@@ -880,7 +815,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
             try context.spendGas(@truncate(dynamic_cost));
             std.debug.print("Log(0x{x:0>64}):\n  - {x:0>2}", .{ topic0, data });
-            context.program_counter += 1;
         },
         .LOG2 => {
             try context.spendGas(1125);
@@ -897,7 +831,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
             try context.spendGas(@truncate(dynamic_cost));
-            context.program_counter += 1;
             std.debug.print("Log(\n  0x{x:0>64},\n  0x{x:0>64},\n):\n  - {x:0>2}", .{ topic0, topic1, data });
         },
         .LOG3 => {
@@ -916,7 +849,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
             try context.spendGas(@truncate(dynamic_cost));
-            context.program_counter += 1;
             std.debug.print("Log(\n  0x{x:0>64},\n  0x{x:0>64},\n  0x{x:0>64},\n):\n  - {x:0>2}", .{ topic0, topic1, topic2, data });
         },
         .LOG4 => {
@@ -936,7 +868,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
             try context.spendGas(@truncate(dynamic_cost));
-            context.program_counter += 1;
             std.debug.print("Log(\n  0x{x:0>64},\n  0x{x:0>64},\n  0x{x:0>64},\n  0x{x:0>64},\n):\n  - {x:0>2}", .{ topic0, topic1, topic2, topic3, data });
         },
         .CREATE => { // @TODO
@@ -948,7 +879,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             _ = offset;
             _ = size;
             try context.stack.push(0);
-            context.program_counter += 1;
         },
         .CALL => { // @TODO
             try context.spendGas(100);
@@ -967,7 +897,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             _ = ret_offset;
             _ = ret_size;
             try context.stack.push(1);
-            context.program_counter += 1;
         },
         .CALLCODE => {
             try context.spendGas(100);
@@ -986,7 +915,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             _ = ret_offset;
             _ = ret_size;
             try context.stack.push(1);
-            context.program_counter += 1;
         },
         .RETURN => {
             const initial_memory_cost = context.memory.cost();
@@ -1014,7 +942,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             _ = ret_offset;
             _ = ret_size;
             try context.stack.push(1);
-            context.program_counter += 1;
         },
         .CREATE2 => {
             try context.spendGas(32000);
@@ -1027,7 +954,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             _ = size;
             _ = salt;
             try context.stack.push(0);
-            context.program_counter += 1;
         },
         .STATICCALL => {
             try context.spendGas(100);
@@ -1044,7 +970,6 @@ pub fn run(context: *Context, op: OpCode) !void {
             _ = ret_offset;
             _ = ret_size;
             try context.stack.push(1);
-            context.program_counter += 1;
         },
         .REVERT => {
             const initial_memory_cost = context.memory.cost();
@@ -1066,6 +991,9 @@ pub fn run(context: *Context, op: OpCode) !void {
             const address = try context.stack.pop();
             _ = address;
             context.status = .Stop;
+        },
+        _ => {
+            context.status = .Panic;
         },
     }
 }

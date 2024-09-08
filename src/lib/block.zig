@@ -1,7 +1,5 @@
 const Address = @import("./address.zig").Address;
 
-const Self = @This();
-
 number: u64 = 0,
 hash: u256 = 0,
 difficulty: u256 = 0,

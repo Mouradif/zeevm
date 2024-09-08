@@ -52,7 +52,7 @@ pub fn parseUint(allocator: std.mem.Allocator, input: []const u8, T: type) !T {
     return @byteSwap(@as(T, @bitCast(@as([byteSize]u8, buffer[0..byteSize].*))));
 }
 
-test "Parse normal hex string without prefix" {
+test "Hex: Parse normal hex string without prefix" {
     const input = "36cc3b4eb1a6e7079cedee9f7487c8d968bfc9e30db863e533e93f6c7956bba9";
     var output: [32]u8 = undefined;
     parseStaticBuffer(input, 32, &output);
@@ -62,7 +62,7 @@ test "Parse normal hex string without prefix" {
     }
 }
 
-test "Parse normal hex string with prefix" {
+test "Hex: Parse normal hex string with prefix" {
     const input = "0x36cc3b4eb1a6e7079cedee9f7487c8d968bfc9e30db863e533e93f6c7956bba9";
     var output: [32]u8 = undefined;
     parseStaticBuffer(input, 32, &output);
@@ -72,7 +72,7 @@ test "Parse normal hex string with prefix" {
     }
 }
 
-test "Parse U256" {
+test "Hex: Parse U256" {
     const input = "0x36cc3b4eb1a6e7079cedee9f7487c8d968bfc9e30db863e533e93f6c7956bba9";
     const output = try parseUint(std.testing.allocator, input, u256);
 

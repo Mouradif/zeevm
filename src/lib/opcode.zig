@@ -159,18 +159,17 @@ pub const OpCode = enum(u8) {
     REVERT = 0xfd,
     INVALID = 0xfe,
     SELFDESTRUCT = 0xff,
+    _,
 
-    const Self = @This();
-
-    pub fn from(b: u8) Self {
+    pub fn from(b: u8) OpCode {
         return @enumFromInt(b);
     }
 
-    pub fn value(self: *Self) u8 {
+    pub fn value(self: *OpCode) u8 {
         return @intFromEnum(self);
     }
 
-    pub fn op(self: *Self) []u8 {
-        return std.enums.tagName(Self, self);
+    pub fn op(self: *OpCode) []u8 {
+        return std.enums.tagName(OpCode, self);
     }
 };
