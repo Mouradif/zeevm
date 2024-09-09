@@ -13,16 +13,16 @@ const Interpreter = @import("interpreter.zig");
 const RPCClient = @import("../utils/rpc/rpc_client.zig");
 
 const ContextInitializer = struct {
-    chain: ?Chain = null,
-    block: ?Block = null,
+    chain: Chain = Chain{},
+    block: Block = Block{},
     rpc_client: ?*RPCClient = null,
     state: *ChainState,
-    gas: u64,
+    gas: u64 = 30_000_000,
     address: Address = 0,
     caller: Address = 0,
     origin: Address = 0,
     call_value: u256 = 0,
-    call_data: []const u8,
+    call_data: []const u8 = "",
 };
 
 const Context = @This();
@@ -64,12 +64,10 @@ memory_expansion_cost: u64 = 0,
 log_emitter: *const LogEmitter,
 
 pub fn init(allocator: std.mem.Allocator, initializer: ContextInitializer) Context {
-    const chain = if (initializer.chain) |s| s else Chain{};
-    const block = if (initializer.block) |b| b else Block{};
     return .{
         .allocator = allocator,
-        .chain = chain,
-        .block = block,
+        .chain = initializer.chain,
+        .block = initializer.block,
         .rpc_client = initializer.rpc_client,
         .state = initializer.state,
         .gas = initializer.gas,
@@ -78,27 +76,6 @@ pub fn init(allocator: std.mem.Allocator, initializer: ContextInitializer) Conte
         .origin = initializer.origin,
         .call_value = initializer.call_value,
         .call_data = initializer.call_data,
-        .memory = Memory.init(allocator),
-        .log_emitter = debugLogEmitter,
-    };
-}
-
-pub fn initEmpty(allocator: std.mem.Allocator) !Context {
-    var state = try ChainState.create(allocator);
-    state.allocator = allocator;
-    state.address_states = std.AutoHashMap(Address, *AddressState).init(allocator);
-    return .{
-        .allocator = allocator,
-        .chain = Chain{},
-        .block = Block{},
-        .rpc_client = null,
-        .state = state,
-        .gas = 100_000,
-        .address = 1,
-        .caller = 2,
-        .origin = 2,
-        .call_value = 100,
-        .call_data = "",
         .memory = Memory.init(allocator),
         .log_emitter = debugLogEmitter,
     };

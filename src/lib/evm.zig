@@ -116,24 +116,41 @@ pub fn run(self: *EVM, run_params: EVMRunParams) ![]u8 {
     return self.context.return_data;
 }
 
-test "EVM: Simple addition" {
-    const code_string = "0x60016004015f5260205ff3";
-    const code = try std.testing.allocator.alloc(u8, 11);
-    defer std.testing.allocator.free(code);
-    Hex.parseStaticBuffer(code_string, 11, code);
-    var context = try Context.initEmpty(std.testing.allocator);
-    defer context.deinit();
+fn testReturnsOneWord(code_string: []const u8, expected_return: u256, expected_gas_usage: u64) !void {
+    const code_len = code_string.len / 2;
+    const code = try std.testing.allocator.alloc(u8, code_len);
+    Hex.parseStaticBuffer(code_string, code_len, code);
+    var context = Context.init(std.testing.allocator, .{
+        .state = try ChainState.create(std.testing.allocator),
+    });
     var address_state = AddressState.init(std.testing.allocator, .{ .code = code });
     try context.state.address_states.put(1, &address_state);
     var evm = EVM.init(std.testing.allocator, .{
         .context = &context,
     });
-    defer evm.deinit();
     const return_data = try evm.run(.{});
-    defer std.testing.allocator.free(return_data);
+    defer {
+        std.testing.allocator.free(code);
+        context.deinit();
+        evm.deinit();
+        std.testing.allocator.free(return_data);
+    }
     try std.testing.expectEqual(32, return_data.len);
     var word: [32]u8 = undefined;
     @memcpy(word[0..32], return_data);
     const result = @byteSwap(@as(u256, @bitCast(word)));
-    try std.testing.expectEqual(5, result);
+    try std.testing.expectEqual(expected_return, result);
+    try std.testing.expectEqual(21000 + expected_gas_usage, 30_000_000 - context.gas);
+}
+
+test "EVM: The meaning of life" {
+    try testReturnsOneWord("602a60005260206000F3", 42, 18);
+}
+
+test "EVM: Simple addition" {
+    try testReturnsOneWord("60016004015f5260205ff3", 5, 22);
+}
+
+test "EVM: Arithmetics" {
+    try testReturnsOneWord("60068061060061420004600a0202015f5260205ff3", 666, 46);
 }

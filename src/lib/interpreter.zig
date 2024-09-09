@@ -719,7 +719,7 @@ pub fn run(context: *Context, op: OpCode) !void {
         .MCOPY => {},
         .PUSH0 => {
             try context.spendGas(2);
-            try context.push(0);
+            try context.stack.push(0);
         },
         .PUSH1 => try context.push(1),
         .PUSH2 => try context.push(2),
