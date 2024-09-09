@@ -68,9 +68,9 @@ pub fn fork_init(allocator: std.mem.Allocator, initializer: EVMForkInitializer) 
 }
 
 pub fn deinit(self: *EVM) void {
-    if (self.rpc_client) |client| {
-        client.deinit();
-    }
+    if (self.rpc_client == null) return;
+
+    self.rpc_client.?.deinit();
 }
 
 pub fn initContext(self: *EVM) !void {
@@ -83,9 +83,11 @@ pub fn initContext(self: *EVM) !void {
     }
     var address_state = AddressState.init(
         self.allocator,
-        try client.getBalance(address),
-        try client.getTransactionCount(address),
-        code,
+        .{
+            .balance = try client.getBalance(address),
+            .nonce = try client.getTransactionCount(address),
+            .code = code,
+        },
     );
     try self.context.state.address_states.put(address, &address_state);
 }
@@ -121,7 +123,7 @@ test "EVM: Simple addition" {
     Hex.parseStaticBuffer(code_string, 11, code);
     var context = try Context.initEmpty(std.testing.allocator);
     defer context.deinit();
-    var address_state = AddressState.init(std.testing.allocator, 0, 0, code);
+    var address_state = AddressState.init(std.testing.allocator, .{ .code = code });
     try context.state.address_states.put(1, &address_state);
     var evm = EVM.init(std.testing.allocator, .{
         .context = &context,
@@ -130,4 +132,8 @@ test "EVM: Simple addition" {
     const return_data = try evm.run(.{});
     defer std.testing.allocator.free(return_data);
     try std.testing.expectEqual(32, return_data.len);
+    var word: [32]u8 = undefined;
+    @memcpy(word[0..32], return_data);
+    const result = @byteSwap(@as(u256, @bitCast(word)));
+    try std.testing.expectEqual(5, result);
 }

@@ -48,7 +48,9 @@ test "Get code returns code for known contract" {
     const code = try std.testing.allocator.alloc(u8, 10);
     defer std.testing.allocator.free(code);
     @memcpy(code, opcodes[0..10]);
-    var address_state = AddressState.init(std.testing.allocator, 0, 0, code);
+    var address_state = AddressState.init(std.testing.allocator, .{
+        .code = code,
+    });
     defer address_state.deinit();
     try state.address_states.put(0, &address_state);
 
@@ -69,7 +71,7 @@ test "Codehash returns code hash" {
     for (opcodes, 0..) |opcode, i| {
         code[i] = opcode;
     }
-    var address_state = AddressState.init(std.testing.allocator, 0, 0, code);
+    var address_state = AddressState.init(std.testing.allocator, .{ .code = code });
     defer address_state.deinit();
     try state.address_states.put(0, &address_state);
 

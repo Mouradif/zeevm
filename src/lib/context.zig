@@ -175,7 +175,11 @@ pub fn loadAddress(self: *Context, address: Address) !*AddressState {
             nonce = 0;
             code = "";
         }
-        var address_state = AddressState.init(self.state.allocator, balance, nonce, code);
+        var address_state = AddressState.init(self.state.allocator, .{
+            .balance = balance,
+            .nonce = nonce,
+            .code = code,
+        });
         address_state.is_warm = true;
         try self.state.address_states.put(address, &address_state);
         return self.state.address_states.get(address).?;
@@ -269,8 +273,7 @@ test "Context: Spawn" {
 }
 
 test "Context: Gas" {
-    var state = try ChainState.create(std.testing.allocator);
-    defer state.destroy();
+    const state = try ChainState.create(std.testing.allocator);
     var context = Context.init(std.testing.allocator, .{
         .gas = 1000,
         .state = state,
