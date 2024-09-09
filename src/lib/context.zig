@@ -30,11 +30,15 @@ const Context = @This();
 const LogEmitter = fn (topics: []u256, data: []u8) anyerror!void;
 
 fn debugLogEmitter(topics: []u256, data: []u8) anyerror!void {
-    std.debug.print("LOG(\n");
+    std.debug.print("LOG(\n", .{});
     for (topics) |topic| {
-        std.debug.print("\t0x{x0>64},\n", .{topic});
+        std.debug.print("\t0x{x:0>64},\n", .{topic});
     }
-    std.debug.print(") -> {x}\n", data);
+    std.debug.print(") -> 0x", .{});
+    for (data) |byte| {
+        std.debug.print("{x:0>2}", .{byte});
+    }
+    std.debug.print("\n", .{});
 }
 
 allocator: std.mem.Allocator,
@@ -57,7 +61,7 @@ child: ?*Context = null,
 code: ?[]const u8 = null,
 program_counter: u32 = 0,
 memory_expansion_cost: u64 = 0,
-log_emitter: LogEmitter,
+log_emitter: *const LogEmitter,
 
 pub fn init(allocator: std.mem.Allocator, initializer: ContextInitializer) Context {
     const chain = if (initializer.chain) |s| s else Chain{};
@@ -96,6 +100,7 @@ pub fn initEmpty(allocator: std.mem.Allocator) !Context {
         .call_value = 100,
         .call_data = "",
         .memory = Memory.init(allocator),
+        .log_emitter = debugLogEmitter,
     };
 }
 
