@@ -785,12 +785,14 @@ pub fn run(context: *Context, op: OpCode) !void {
         .SWAP14 => try context.swap(14),
         .SWAP15 => try context.swap(15),
         .SWAP16 => try context.swap(16),
-        .LOG0 => { // @TODO: implement log
+        .LOG0 => {
             try context.spendGas(375);
             const initial_memory_cost = context.memory.cost();
+            const topics = try context.allocator.alloc(u256, 0);
             defer {
                 const new_memory_cost = context.memory.cost();
                 context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
+                context.allocator.free(topics);
             }
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
@@ -798,77 +800,85 @@ pub fn run(context: *Context, op: OpCode) !void {
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
             try context.spendGas(@truncate(dynamic_cost));
-            std.debug.print("Log:\n  - {x:0>2}", .{data});
+            try context.emitLog(topics, data);
         },
         .LOG1 => {
             try context.spendGas(750);
             const initial_memory_cost = context.memory.cost();
+            const topics = try context.allocator.alloc(u256, 1);
             defer {
                 const new_memory_cost = context.memory.cost();
                 context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
+                context.allocator.free(topics);
             }
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
-            const topic0 = try context.stack.pop();
+            topics[0] = try context.stack.pop();
             const data = try context.memory.read(offset, size);
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
             try context.spendGas(@truncate(dynamic_cost));
-            std.debug.print("Log(0x{x:0>64}):\n  - {x:0>2}", .{ topic0, data });
+            try context.emitLog(topics, data);
         },
         .LOG2 => {
             try context.spendGas(1125);
             const initial_memory_cost = context.memory.cost();
+            const topics = try context.allocator.alloc(u256, 2);
             defer {
                 const new_memory_cost = context.memory.cost();
                 context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
+                context.allocator.free(topics);
             }
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
-            const topic0 = try context.stack.pop();
-            const topic1 = try context.stack.pop();
+            topics[0] = try context.stack.pop();
+            topics[1] = try context.stack.pop();
             const data = try context.memory.read(offset, size);
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
             try context.spendGas(@truncate(dynamic_cost));
-            std.debug.print("Log(\n  0x{x:0>64},\n  0x{x:0>64},\n):\n  - {x:0>2}", .{ topic0, topic1, data });
+            try context.emitLog(topics, data);
         },
         .LOG3 => {
             try context.spendGas(1500);
             const initial_memory_cost = context.memory.cost();
+            const topics = try context.allocator.alloc(u256, 3);
             defer {
                 const new_memory_cost = context.memory.cost();
                 context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
+                context.allocator.free(topics);
             }
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
-            const topic0 = try context.stack.pop();
-            const topic1 = try context.stack.pop();
-            const topic2 = try context.stack.pop();
+            topics[0] = try context.stack.pop();
+            topics[1] = try context.stack.pop();
+            topics[2] = try context.stack.pop();
             const data = try context.memory.read(offset, size);
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
             try context.spendGas(@truncate(dynamic_cost));
-            std.debug.print("Log(\n  0x{x:0>64},\n  0x{x:0>64},\n  0x{x:0>64},\n):\n  - {x:0>2}", .{ topic0, topic1, topic2, data });
+            try context.emitLog(topics, data);
         },
         .LOG4 => {
             try context.spendGas(1875);
             const initial_memory_cost = context.memory.cost();
+            const topics = try context.allocator.alloc(u256, 4);
             defer {
                 const new_memory_cost = context.memory.cost();
                 context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
+                context.allocator.free(topics);
             }
             const offset = try context.stack.pop();
             const size = try context.stack.pop();
-            const topic0 = try context.stack.pop();
-            const topic1 = try context.stack.pop();
-            const topic2 = try context.stack.pop();
-            const topic3 = try context.stack.pop();
+            topics[0] = try context.stack.pop();
+            topics[1] = try context.stack.pop();
+            topics[2] = try context.stack.pop();
+            topics[3] = try context.stack.pop();
             const data = try context.memory.read(offset, size);
             defer context.memory.allocator.free(data);
             const dynamic_cost = 8 * @divFloor(size + 31, 32);
             try context.spendGas(@truncate(dynamic_cost));
-            std.debug.print("Log(\n  0x{x:0>64},\n  0x{x:0>64},\n  0x{x:0>64},\n  0x{x:0>64},\n):\n  - {x:0>2}", .{ topic0, topic1, topic2, topic3, data });
+            try context.emitLog(topics, data);
         },
         .CREATE => { // @TODO
             try context.spendGas(32000);

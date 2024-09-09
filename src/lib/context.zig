@@ -27,6 +27,20 @@ const ContextInitializer = struct {
 
 const Context = @This();
 
+const LogEmitter = fn (topics: []u256, data: []u8) anyerror!void;
+
+fn debugLogEmitter(topics: []u256, data: []u8) anyerror!void {
+    std.debug.print("LOG(\n", .{});
+    for (topics) |topic| {
+        std.debug.print("\t0x{x:0>64},\n", .{topic});
+    }
+    std.debug.print(") -> 0x", .{});
+    for (data) |byte| {
+        std.debug.print("{x:0>2}", .{byte});
+    }
+    std.debug.print("\n", .{});
+}
+
 allocator: std.mem.Allocator,
 chain: Chain,
 block: Block,
@@ -47,6 +61,7 @@ child: ?*Context = null,
 code: ?[]const u8 = null,
 program_counter: u32 = 0,
 memory_expansion_cost: u64 = 0,
+log_emitter: *const LogEmitter,
 
 pub fn init(allocator: std.mem.Allocator, initializer: ContextInitializer) Context {
     const chain = if (initializer.chain) |s| s else Chain{};
@@ -64,6 +79,7 @@ pub fn init(allocator: std.mem.Allocator, initializer: ContextInitializer) Conte
         .call_value = initializer.call_value,
         .call_data = initializer.call_data,
         .memory = Memory.init(allocator),
+        .log_emitter = debugLogEmitter,
     };
 }
 
@@ -84,6 +100,7 @@ pub fn initEmpty(allocator: std.mem.Allocator) !Context {
         .call_value = 100,
         .call_data = "",
         .memory = Memory.init(allocator),
+        .log_emitter = debugLogEmitter,
     };
 }
 
@@ -247,6 +264,10 @@ pub fn ensureValidJumpDestination(self: *Context) !void {
             return error.InvalidJumpDestination;
         },
     }
+}
+
+pub fn emitLog(self: *Context, topics: []u256, data: []u8) !void {
+    try self.log_emitter(topics, data);
 }
 
 test "Context: Spawn" {
