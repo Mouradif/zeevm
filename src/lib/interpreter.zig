@@ -234,7 +234,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             try context.stack.push(a *% b);
         },
         .SUB => {
-            try context.spendGas(5);
+            try context.spendGas(3);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
             try context.stack.push(a -% b);

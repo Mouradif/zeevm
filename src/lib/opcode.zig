@@ -169,7 +169,11 @@ pub const OpCode = enum(u8) {
         return @intFromEnum(self);
     }
 
-    pub fn op(self: *OpCode) []u8 {
+    pub fn op(self: OpCode) ?[]const u8 {
         return std.enums.tagName(OpCode, self);
+    }
+
+    pub fn print(self: OpCode, pc: u32) void {
+        std.debug.print("[{x:0>4}] {s}\n", .{ pc, self.op().? });
     }
 };
