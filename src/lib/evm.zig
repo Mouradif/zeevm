@@ -154,3 +154,7 @@ test "EVM: Simple addition" {
 test "EVM: Arithmetics" {
     try testReturnsOneWord("60068061060061420004600a0202015f5260205ff3", 666, 46);
 }
+
+test "EVM: Control Flow" {
+    try testReturnsOneWord("5f5b60010180600a116001575f5260205ff3", 10, 305);
+}
