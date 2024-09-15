@@ -1,5 +1,5 @@
 const std = @import("std");
-const StackError = @import("stack_error.zig").StackError;
+const StackError = @import("../errors/stack_error.zig").StackError;
 
 const MAX_STACK_SIZE = 1024;
 const Stack = @This();

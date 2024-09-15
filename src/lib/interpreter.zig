@@ -1,8 +1,10 @@
 const std = @import("std");
-const OpCode = @import("opcode.zig").OpCode;
+
+const OpCode = @import("../types/opcode.zig").OpCode;
+const Hash = @import("../utils/hash.zig");
+
 const Context = @import("context.zig");
 const AddressState = @import("address_state.zig");
-const Hash = @import("../utils/hash.zig");
 
 fn signExtend(b: u256, x: u256) u256 {
     switch (b) {
@@ -465,7 +467,7 @@ pub fn run(context: *Context, op: OpCode) !void {
         .CODESIZE => {
             try context.spendGas(2);
             const address_state = try context.loadAddress(context.address);
-            try context.stack.push(@as(u256, @intCast(address_state.code.len)));
+            try context.stack.push(@as(u256, @intCast(address_state.code.?.len)));
         },
         .CODECOPY => {
             try context.spendGas(3);
@@ -486,10 +488,10 @@ pub fn run(context: *Context, op: OpCode) !void {
             const dest_start: usize = @truncate(dest_offset);
             const u_size: usize = @truncate(size);
             @memset(context.memory.buffer.items[dest_start .. dest_start + u_size], 0);
-            if (offset < address_state.code.len) {
+            if (offset < address_state.code.?.len) {
                 const start: usize = @truncate(offset);
-                const copiable_size: usize = @truncate(address_state.code.len - offset);
-                @memcpy(context.memory.buffer.items[dest_start .. dest_start + copiable_size], address_state.code[start .. start + copiable_size]);
+                const copiable_size: usize = @truncate(address_state.code.?.len - offset);
+                @memcpy(context.memory.buffer.items[dest_start .. dest_start + copiable_size], address_state.code.?[start .. start + copiable_size]);
             }
         },
         .GASPRICE => {
@@ -501,7 +503,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             const address = try context.stack.pop();
             const addr: u160 = @truncate(address);
             const address_state = try context.loadAddress(addr);
-            try context.stack.push(@as(u256, @intCast(address_state.code.len)));
+            try context.stack.push(@as(u256, @intCast(address_state.code.?.len)));
         },
         .EXTCODECOPY => {
             try context.spendGas(100);
@@ -524,10 +526,10 @@ pub fn run(context: *Context, op: OpCode) !void {
             const dest_start: usize = @truncate(dest_offset);
             const u_size: usize = @truncate(size);
             @memset(context.memory.buffer.items[dest_start .. dest_start + u_size], 0);
-            if (offset < address_state.code.len) {
+            if (offset < address_state.code.?.len) {
                 const start: usize = @truncate(offset);
-                const copiable_size: usize = @truncate(address_state.code.len - offset);
-                @memcpy(context.memory.buffer.items[dest_start .. dest_start + copiable_size], address_state.code[start .. start + copiable_size]);
+                const copiable_size: usize = @truncate(address_state.code.?.len - offset);
+                @memcpy(context.memory.buffer.items[dest_start .. dest_start + copiable_size], address_state.code.?[start .. start + copiable_size]);
             }
         },
         .RETURNDATASIZE => {
@@ -569,7 +571,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             const address = try context.stack.pop();
             const addr: u160 = @truncate(address);
             _ = try context.loadAddress(addr);
-            try context.stack.push(context.state.codeHash(addr));
+            try context.stack.push(context.codeHash(addr));
         },
         .BLOCKHASH => {
             try context.spendGas(20);

@@ -1,7 +1,7 @@
 const std = @import("std");
-const MemoryError = @import("memory_error.zig").MemoryError;
 
-const ByteArray = std.ArrayList(u8);
+const MemoryError = @import("../errors/memory_error.zig").MemoryError;
+const ByteArray = @import("../types/byte_array.zig").ByteArray;
 
 const MAX_COST = 30_000_000;
 
@@ -13,7 +13,7 @@ const Memory = @This();
 pub fn init(allocator: std.mem.Allocator) Memory {
     return Memory{
         .allocator = allocator,
-        .buffer = std.ArrayList(u8).init(allocator),
+        .buffer = ByteArray.init(allocator),
     };
 }
 

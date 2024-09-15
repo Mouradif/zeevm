@@ -1,12 +1,13 @@
 const std = @import("std");
-const Context = @import("context.zig");
-const Address = @import("address.zig").Address;
-const AddressState = @import("address_state.zig");
-const Block = @import("block.zig");
-const Chain = @import("chain.zig");
-const ChainState = @import("chain_state.zig");
-const RPCClient = @import("../utils/rpc/rpc_client.zig");
+
+const Block = @import("../types/block.zig");
+const Chain = @import("../types/chain.zig");
 const Hex = @import("../utils/hex.zig");
+const ChainState = @import("../types/chain_state.zig").ChainState;
+
+const Context = @import("context.zig");
+const AddressState = @import("address_state.zig");
+const RPCClient = @import("../utils/rpc/rpc_client.zig");
 
 const EVM = @This();
 
@@ -20,9 +21,9 @@ const EVMForkInitializer = struct {
 };
 
 const EVMRunParams = struct {
-    caller: Address = 2,
-    origin: Address = 2,
-    address: Address = 1,
+    caller: u160 = 2,
+    origin: u160 = 2,
+    address: u160 = 1,
     call_value: u256 = 0,
     gas: u64 = 30_000_000,
     call_data: []u8 = "",
@@ -77,7 +78,7 @@ pub fn initContext(self: *EVM) !void {
     var client = self.rpc_client.?;
     const address = self.context.address;
     const code = try client.getCode(address);
-    if (self.context.state.address_states.get(address)) |address_state| {
+    if (self.context.state.get(address)) |address_state| {
         address_state.code = code;
         return;
     }
@@ -89,7 +90,7 @@ pub fn initContext(self: *EVM) !void {
             .code = code,
         },
     );
-    try self.context.state.address_states.put(address, &address_state);
+    try self.context.state.put(address, &address_state);
 }
 
 pub fn run(self: *EVM, run_params: EVMRunParams) ![]u8 {
@@ -103,7 +104,7 @@ pub fn run(self: *EVM, run_params: EVMRunParams) ![]u8 {
         try self.initContext();
     }
 
-    const address_state = self.context.state.address_states.get(self.context.address).?;
+    const address_state = self.context.state.get(self.context.address).?;
     address_state.is_warm = true;
 
     while (self.context.status == .Continue) {
@@ -121,10 +122,10 @@ fn testReturnsOneWord(code_string: []const u8, expected_return: u256, expected_g
     const code = try std.testing.allocator.alloc(u8, code_len);
     Hex.parseStaticBuffer(code_string, code_len, code);
     var context = Context.init(std.testing.allocator, .{
-        .state = try ChainState.create(std.testing.allocator),
+        .state = ChainState.init(std.testing.allocator),
     });
     var address_state = AddressState.init(std.testing.allocator, .{ .code = code });
-    try context.state.address_states.put(1, &address_state);
+    try context.state.put(1, &address_state);
     var evm = EVM.init(std.testing.allocator, .{
         .context = &context,
     });

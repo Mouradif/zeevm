@@ -3,6 +3,7 @@ const RPCError = @import("rpc_error.zig").RPCError;
 const RPCBasicResponse = @import("rpc_basic_response.zig");
 const RPCParsedResponse = @import("rpc_parsed_response.zig").RPCParsedResponse;
 const Hex = @import("../hex.zig");
+const ByteArray = @import("../../types/byte_array.zig").ByteArray;
 
 const RPCClient = @This();
 
@@ -69,7 +70,7 @@ fn makeAddressNumericRPCRequest(self: *RPCClient, req: []const u8, address: u160
 }
 
 fn makeBasicRPCRequest(self: *RPCClient, req: []const u8) !RPCParsedResponse(RPCBasicResponse) {
-    var response = std.ArrayList(u8).init(self.allocator);
+    var response = ByteArray.init(self.allocator);
     defer response.deinit();
     const payload = try std.fmt.allocPrint(
         self.allocator,
@@ -102,7 +103,7 @@ fn makeBasicRPCRequest(self: *RPCClient, req: []const u8) !RPCParsedResponse(RPC
 }
 
 fn makeAddressRPCRequest(self: *RPCClient, req: []const u8, address: u160) !RPCParsedResponse(RPCBasicResponse) {
-    var response = std.ArrayList(u8).init(self.allocator);
+    var response = ByteArray.init(self.allocator);
     defer response.deinit();
     const payload = try std.fmt.allocPrint(
         self.allocator,

@@ -10,10 +10,6 @@ test "Address State" {
     _ = @import("lib/address_state.zig");
 }
 
-test "Chain State" {
-    _ = @import("lib/chain_state.zig");
-}
-
 test "Context" {
     _ = @import("lib/context.zig");
 }

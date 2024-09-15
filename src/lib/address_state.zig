@@ -3,7 +3,7 @@ const std = @import("std");
 allocator: std.mem.Allocator,
 balance: u256,
 nonce: u256,
-code: []u8,
+code: ?[]u8,
 storage: std.AutoHashMap(u256, u256),
 transient_storage: std.AutoHashMap(u256, u256),
 is_warm: bool = false,
@@ -14,7 +14,7 @@ const AddressState = @This();
 const AddressStateInitializer = struct {
     balance: u256 = 0,
     nonce: u256 = 0,
-    code: []u8 = "",
+    code: ?[]u8 = null,
 };
 
 pub fn init(allocator: std.mem.Allocator, initializer: AddressStateInitializer) AddressState {
@@ -33,6 +33,9 @@ pub fn deinit(self: *AddressState) void {
     self.storage.deinit();
     self.transient_storage.deinit();
     self.storage_accesslist.deinit();
+    if (self.code) |code| {
+        self.allocator.free(code);
+    }
 }
 
 pub fn sLoad(self: *AddressState, slot: u256) !u256 {
