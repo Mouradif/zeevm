@@ -4,6 +4,7 @@ const Block = @import("../types/block.zig");
 const Chain = @import("../types/chain.zig");
 const Hex = @import("../utils/hex.zig");
 const ChainState = @import("../types/chain_state.zig").ChainState;
+const ContextStatus = @import("../types/context_status.zig").ContextStatus;
 
 const Context = @import("context.zig");
 const AddressState = @import("address_state.zig");
@@ -117,7 +118,15 @@ pub fn run(self: *EVM, run_params: EVMRunParams) ![]u8 {
     return self.context.return_data;
 }
 
+fn testRevertsOneWord(code_string: []const u8, expected_revert: u256, expected_gas_usage: u64) !void {
+    try testOneWordOutput(code_string, expected_revert, expected_gas_usage, .Revert);
+}
+
 fn testReturnsOneWord(code_string: []const u8, expected_return: u256, expected_gas_usage: u64) !void {
+    try testOneWordOutput(code_string, expected_return, expected_gas_usage, .Return);
+}
+
+fn testOneWordOutput(code_string: []const u8, expected_return: u256, expected_gas_usage: u64, expected_status: ContextStatus) !void {
     const code_len = code_string.len / 2;
     const code = try std.testing.allocator.alloc(u8, code_len);
     Hex.parseStaticBuffer(code_string, code_len, code);
@@ -142,6 +151,7 @@ fn testReturnsOneWord(code_string: []const u8, expected_return: u256, expected_g
     const result = @byteSwap(@as(u256, @bitCast(word)));
     try std.testing.expectEqual(expected_return, result);
     try std.testing.expectEqual(21000 + expected_gas_usage, 30_000_000 - context.gas);
+    try std.testing.expectEqual(expected_status, evm.context.status);
 }
 
 test "EVM: The meaning of life" {
@@ -162,4 +172,8 @@ test "EVM: Control Flow" {
 
 test "EVM: Solidity loop" {
     try testReturnsOneWord("6080604052348015600e575f80fd5b505f3660605f805b600a8110156036578082602891906099565b915080806001019150506016565b50806040516020016046919060d2565b604051602081830303815290604052915050915050805190602001f35b5f819050919050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f60a1826063565b915060aa836063565b925082820190508082111560bf5760be606c565b5b92915050565b60cc816063565b82525050565b5f60208201905060e35f83018460c5565b9291505056fea2646970667358221220fa8b7f4c3b6dcd9b6d4243a10fdab58bb71c6bfb5a5928bb5bae3495b6724f5564736f6c634300081a0033", 45, 2808);
+}
+
+test "Basic Revert" {
+    try testRevertsOneWord("60205f60205f52fd", 32, 16);
 }
