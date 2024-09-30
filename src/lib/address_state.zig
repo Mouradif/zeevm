@@ -33,9 +33,6 @@ pub fn deinit(self: *AddressState) void {
     self.storage.deinit();
     self.transient_storage.deinit();
     self.storage_accesslist.deinit();
-    if (self.code) |code| {
-        self.allocator.free(code);
-    }
 }
 
 pub fn sLoad(self: *AddressState, slot: u256) !u256 {

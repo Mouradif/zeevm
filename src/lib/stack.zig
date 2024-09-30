@@ -43,7 +43,10 @@ pub fn swap(self: *Stack, i: u8) !void {
     self.items[index_a] ^= self.items[index_b];
 }
 
-pub fn peek(self: *Stack) u256 {
+pub fn peek(self: *Stack) ?u256 {
+    if (self.head == 0) {
+        return null;
+    }
     return self.items[self.head - 1];
 }
 

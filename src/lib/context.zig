@@ -28,7 +28,7 @@ const ContextInitializer = struct {
 };
 
 const Context = @This();
-const AddressAccesslist = std.ArrayList(u160);
+const AddressAccesslist = std.AutoHashMap(u160, void);
 
 const LogEmitter = fn (topics: []u256, data: []u8) anyerror!void;
 
@@ -42,6 +42,14 @@ fn debugLogEmitter(topics: []u256, data: []u8) anyerror!void {
         std.debug.print("{x:0>2}", .{byte});
     }
     std.debug.print("\n", .{});
+}
+
+fn calldataCost(calldata: []const u8) u64 {
+    var cost: u64 = 0;
+    for (calldata) |byte| {
+        cost += if (byte == 0) 4 else 16;
+    }
+    return cost;
 }
 
 allocator: std.mem.Allocator,
@@ -88,11 +96,13 @@ pub fn init(allocator: std.mem.Allocator, initializer: ContextInitializer) Conte
 
 pub fn deinit(self: *Context) void {
     self.memory.deinit();
-    for (self.address_accesslist.items) |address| {
-        if (self.state.get(address)) |address_state| {
+    var it = self.address_accesslist.keyIterator();
+    while (it.next()) |address_ptr| {
+        if (self.state.get(address_ptr.*)) |address_state| {
             address_state.deinit();
         }
     }
+    self.address_accesslist.deinit();
     self.state.deinit();
 }
 
@@ -126,32 +136,40 @@ pub fn spendGas(self: *Context, amount: u64) !void {
     self.gas -= amount;
 }
 
+pub fn spendCalldataGas(self: *Context) !void {
+    const cost = calldataCost(self.call_data);
+    try self.spendGas(cost);
+}
+
 pub fn startTransaction(self: *Context) !void {
     try self.spendGas(21000);
 }
 
-pub fn runNextOperation(self: *Context) !void {
+pub fn runNextOperation(self: *Context) !u64 {
     if (self.program_counter == 0) {
         self.startTransaction() catch {
             self.status = .OutOfGas;
-            return;
+            return 0;
         };
         self.loadCode();
     }
 
     if (self.code == null or self.program_counter >= self.code.?.len) {
         self.status = if (self.program_counter == 0) .Stop else .Panic;
-        return;
+        return 0;
     }
 
+    const gas_start = self.gas;
     const byte: u8 = self.code.?[self.program_counter];
     const opcode: OpCode = OpCode.from(byte);
     try Interpreter.run(self, opcode);
+
     if (self.memory_expansion_cost > 0) {
         try self.spendGas(self.memory_expansion_cost);
         self.memory_expansion_cost = 0;
     }
     self.advanceProgramCounter(1);
+    return gas_start - self.gas;
 }
 
 pub fn advanceProgramCounter(self: *Context, n: u32) void {
@@ -204,6 +222,7 @@ pub fn writeStorageSlot(self: *Context, slot: u256, value: u256) !void {
     const is_warm = address_state.storage_accesslist.contains(slot);
     if (!is_warm) {
         try self.spendGas(2100);
+        try address_state.storage_accesslist.put(slot, {});
     }
     try address_state.sStore(slot, value);
 }

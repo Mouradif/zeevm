@@ -158,7 +158,7 @@ test "RPC Client: Get Balance" {
     defer rpc_client.deinit();
 
     const num = try rpc_client.getBalance(0x9eb3a30117810d5a36568714eb5350480942f644);
-    try std.testing.expectEqual(989526957132020483, num);
+    try std.testing.expectEqual(913248237652581094, num);
 }
 
 test "RPC Client: Get Nonce" {
@@ -166,7 +166,7 @@ test "RPC Client: Get Nonce" {
     defer rpc_client.deinit();
 
     const num = try rpc_client.getTransactionCount(0x9eb3a30117810d5a36568714eb5350480942f644);
-    try std.testing.expectEqual(454, num);
+    try std.testing.expectEqual(455, num);
 }
 
 test "RPC Client: Get Code" {

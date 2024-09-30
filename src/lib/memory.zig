@@ -3,7 +3,7 @@ const std = @import("std");
 const MemoryError = @import("../errors/memory_error.zig").MemoryError;
 const ByteArray = @import("../types/byte_array.zig").ByteArray;
 
-const MAX_COST = 30_000_000;
+const MAX_COST = 30_000_000_000;
 
 allocator: std.mem.Allocator,
 buffer: ByteArray,

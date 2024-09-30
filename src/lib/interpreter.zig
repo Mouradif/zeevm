@@ -430,8 +430,10 @@ pub fn run(context: *Context, op: OpCode) !void {
             const i = try context.stack.pop();
             var calldata_bytes: [32]u8 = undefined;
             for (0..32) |index| {
-                const idx: usize = @truncate(i);
-                calldata_bytes[31 - idx] = if (i + index >= context.call_data.len) 0 else context.call_data[idx + index];
+                const src = @as(usize, @truncate(i)) + index;
+                const dst = 31 - index;
+                const byte = if (i + index >= context.call_data.len) 0 else context.call_data[src];
+                calldata_bytes[dst] = byte;
             }
             const word: u256 = @bitCast(calldata_bytes);
             try context.stack.push(word);
@@ -607,7 +609,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             try context.stack.push(@as(u256, @intCast(context.chain.id)));
         },
         .SELFBALANCE => {
-            try context.spendGas(2);
+            try context.spendGas(5);
             const address_state = try context.loadAddress(context.address);
             try context.stack.push(address_state.balance);
         },

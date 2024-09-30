@@ -174,6 +174,10 @@ pub const OpCode = enum(u8) {
     }
 
     pub fn print(self: OpCode, pc: u32) void {
+        std.debug.print("[{x:0>4}] {s}", .{ pc, self.op().? });
+    }
+
+    pub fn println(self: OpCode, pc: u32) void {
         std.debug.print("[{x:0>4}] {s}\n", .{ pc, self.op().? });
     }
 };
