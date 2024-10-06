@@ -2,7 +2,18 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
+    const optimize = b.standardOptimizeOption(.{
+        .preferred_optimize_mode = .ReleaseFast,
+    });
+
+    const lib = b.addStaticLibrary(.{
+        .name = "zee",
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    b.installArtifact(lib);
 
     const lib_unit_tests = b.addTest(.{
         .root_source_file = b.path("src/test.zig"),
@@ -16,23 +27,24 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_lib_unit_tests.step);
 
     // Examples
-    const examples_step = b.step("example", "Run examples");
+    const examples_step = b.step("example", "Run example");
 
-    const example = b.addExecutable(.{
-        .name = "example",
-        .root_source_file = b.path("examples/main.zig"),
+    const example_exe = b.addExecutable(.{
+        .name = "snailtracer example",
+        .root_source_file = b.path("examples/example.zig"),
         .target = target,
         .optimize = optimize,
     });
 
-    const zee_stack_module = b.addModule("zee_stack", .{
-        .root_source_file = b.path("src/lib/stack.zig"),
+    const zee_module = b.addModule("zee", .{
+        .root_source_file = b.path("src/root.zig"),
     });
 
-    example.root_module.addImport("zee_stack", zee_stack_module);
+    example_exe.root_module.addImport("zee", zee_module);
 
-    const example_run = b.addRunArtifact(example);
+    const example_run = b.addRunArtifact(example_exe);
+    if (b.args) | args | {
+        example_run.addArgs(args);
+    }
     examples_step.dependOn(&example_run.step);
-
-    b.default_step.dependOn(examples_step);
 }
