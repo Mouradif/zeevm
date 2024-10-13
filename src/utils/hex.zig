@@ -52,6 +52,13 @@ pub fn parseUint(allocator: std.mem.Allocator, input: []const u8, T: type) !T {
     return @byteSwap(@as(T, @bitCast(@as([byteSize]u8, buffer[0..byteSize].*))));
 }
 
+pub fn printBytes(bytes: []u8) void {
+    std.debug.print("0x", .{});
+    for (bytes) |byte| {
+        std.debug.print("{x:0>2}", .{byte});
+    }
+}
+
 test "Hex: Parse normal hex string without prefix" {
     const input = "36cc3b4eb1a6e7079cedee9f7487c8d968bfc9e30db863e533e93f6c7956bba9";
     var output: [32]u8 = undefined;

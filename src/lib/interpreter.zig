@@ -1,4 +1,5 @@
 const std = @import("std");
+const config = @import("config");
 
 const OpCode = @import("../types/opcode.zig").OpCode;
 const Hash = @import("../utils/hash.zig");
@@ -227,32 +228,47 @@ pub fn run(context: *Context, op: OpCode) !void {
             try context.spendGas(3);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
+            if (comptime config.debug) {
+                std.debug.print("{d} + {d} = {d}\n", .{ a, b, a +% b });
+            }
             try context.stack.push(a +% b);
         },
         .MUL => {
             try context.spendGas(5);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
+            if (comptime config.debug) {
+                std.debug.print("{d} * {d} = {d}\n", .{ a, b, a *% b });
+            }
             try context.stack.push(a *% b);
         },
         .SUB => {
             try context.spendGas(3);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
+            if (comptime config.debug) {
+                std.debug.print("{d} - {d} = {d}\n", .{ a, b, a -% b });
+            }
             try context.stack.push(a -% b);
         },
         .DIV => {
             try context.spendGas(5);
             const a = try context.stack.pop();
             const b = try context.stack.pop();
-            const result = if (b == 0) 0 else @divFloor(a, b);
+            const result = if (b == 0) 0 else @divTrunc(a, b);
+            if (comptime config.debug) {
+                std.debug.print("{d} / {d} = {d}\n", .{ a, b, result });
+            }
             try context.stack.push(result);
         },
         .SDIV => {
             try context.spendGas(5);
             const a: i256 = @bitCast(try context.stack.pop());
             const b: i256 = @bitCast(try context.stack.pop());
-            const result = if (b == 0) 0 else @divFloor(a, b);
+            const result = if (b == 0) 0 else @divTrunc(a, b);
+            if (comptime config.debug) {
+                std.debug.print("{d} / {d} = {d}\n", .{ @as(u256, @bitCast(a)), @as(u256, @bitCast(b)), @as(u256, @bitCast(result)) });
+            }
             try context.stack.push(@as(u256, @bitCast(result)));
         },
         .MOD => {
@@ -260,13 +276,19 @@ pub fn run(context: *Context, op: OpCode) !void {
             const a = try context.stack.pop();
             const b = try context.stack.pop();
             const result = if (b == 0) 0 else @mod(a, b);
+            if (comptime config.debug) {
+                std.debug.print("{d} % {d} = {d}\n", .{ a, b, result });
+            }
             try context.stack.push(result);
         },
         .SMOD => {
             try context.spendGas(5);
             const a: i256 = @bitCast(try context.stack.pop());
             const b: i256 = @bitCast(try context.stack.pop());
-            const result = if (b == 0) 0 else @mod(a, b);
+            const result = if (b == 0) 0 else @rem(a, b);
+            if (comptime config.debug) {
+                std.debug.print("{d} % {d} = {d}\n", .{ @as(u256, @bitCast(a)), @as(u256, @bitCast(b)), @as(u256, @bitCast(result)) });
+            }
             try context.stack.push(@as(u256, @bitCast(result)));
         },
         .ADDMOD => {
@@ -313,6 +335,9 @@ pub fn run(context: *Context, op: OpCode) !void {
             try context.spendGas(3);
             const a: i256 = @bitCast(try context.stack.pop());
             const b: i256 = @bitCast(try context.stack.pop());
+            if (comptime config.debug) {
+                std.debug.print("SLT {d} < {d}\n", .{ @as(u256, @bitCast(a)), @as(u256, @bitCast(b)) });
+            }
             try context.stack.push(@intFromBool(a < b));
         },
         .SGT => {
@@ -669,7 +694,7 @@ pub fn run(context: *Context, op: OpCode) !void {
             const value = try context.loadStorageSlot(slot);
             try context.stack.push(value);
         },
-        .SSTORE => { // @TODO: Compute initialization gas cost + refunds
+        .SSTORE => {
             try context.spendGas(100);
             const slot = try context.stack.pop();
             const value = try context.stack.pop();

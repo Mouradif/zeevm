@@ -8,13 +8,6 @@ const AddressState = zee.AddressState;
 const ContextStatus = zee.ContextStatus;
 const EVM = zee.EVM;
 
-fn debugPrintBytes(bytes: []u8) void {
-    std.debug.print("0x", .{});
-    for (bytes) |byte| {
-        std.debug.print("{x:0>2}", .{byte});
-    }
-}
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
@@ -45,18 +38,9 @@ pub fn main() !void {
     expected_result[32] = 0x18;
     expected_result[64] = 0x63;
 
-
-    var timer = try std.time.Timer.start();
-
     const return_data = try evm.run(.{
         .call_data = calldata,
         .gas = 3_000_000_000,
     });
     defer allocator.free(return_data);
-    std.debug.print("Time: {d}ns\n", .{timer.read()});
-    std.debug.print("Status: {s}\n", .{@tagName(context.status)});
-    std.debug.print("Output: ", .{});
-    debugPrintBytes(return_data);
-    std.debug.print("\n", .{});
-    std.debug.print("Gas used: {d}\n", .{ 3_000_000_000 - context.gas });
 }

@@ -1,4 +1,5 @@
 const std = @import("std");
+const config = @import("config");
 
 const ContextStatus = @import("../types/context_status.zig").ContextStatus;
 const Block = @import("../types/block.zig");
@@ -13,6 +14,17 @@ const Memory = @import("memory.zig");
 const Interpreter = @import("interpreter.zig");
 const RPCClient = @import("../utils/rpc/rpc_client.zig");
 const Hash = @import("../utils//hash.zig");
+
+fn printU256(n: u256) void {
+    const bytes: [32]u8 = @bitCast(@byteSwap(n));
+    std.debug.print(" 0x", .{});
+    for (bytes) |byte| {
+        if (byte == 0) {
+            continue;
+        }
+        std.debug.print("{x:0>2}", .{byte});
+    }
+}
 
 const ContextInitializer = struct {
     chain: Chain = Chain{},
@@ -162,14 +174,23 @@ pub fn runNextOperation(self: *Context) !u64 {
     const gas_start = self.gas;
     const byte: u8 = self.code.?[self.program_counter];
     const opcode: OpCode = OpCode.from(byte);
+    const pc = self.program_counter;
     try Interpreter.run(self, opcode);
 
     if (self.memory_expansion_cost > 0) {
         try self.spendGas(self.memory_expansion_cost);
         self.memory_expansion_cost = 0;
     }
+    const gas_used = gas_start - self.gas;
+    if (comptime config.trace) {
+        opcode.print(pc);
+        if (opcode.isPush()) {
+            printU256(self.stack.peek().?);
+        }
+        std.debug.print(" ({d})\n", .{gas_used});
+    }
     self.advanceProgramCounter(1);
-    return gas_start - self.gas;
+    return gas_used;
 }
 
 pub fn advanceProgramCounter(self: *Context, n: u32) void {
@@ -224,6 +245,10 @@ pub fn writeStorageSlot(self: *Context, slot: u256, value: u256) !void {
         try self.spendGas(2100);
         try address_state.storage_accesslist.put(slot, {});
     }
+    const current_value = try address_state.sLoad(slot);
+    if (current_value == 0 and value != 0) {
+        try self.spendGas(19900);
+    }
     try address_state.sStore(slot, value);
 }
 
@@ -263,13 +288,11 @@ pub fn swap(self: *Context, n: u5) !void {
 pub fn ensureValidJumpDestination(self: *Context) !void {
     const opbyte = self.code.?[self.program_counter];
     const opcode = OpCode.from(opbyte);
-    switch (opcode) {
-        .JUMPDEST => try self.spendGas(1),
-        else => {
-            self.status = .Panic;
-            return error.InvalidJumpDestination;
-        },
+    if (opcode != .JUMPDEST) {
+        self.status = .Panic;
+        return error.InvalidJumpDestination;
     }
+    self.program_counter -= 1;
 }
 
 pub fn emitLog(self: *Context, topics: []u256, data: []u8) !void {

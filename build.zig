@@ -12,7 +12,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
     b.installArtifact(lib);
 
     const lib_unit_tests = b.addTest(.{
@@ -39,6 +38,14 @@ pub fn build(b: *std.Build) void {
     const zee_module = b.addModule("zee", .{
         .root_source_file = b.path("src/root.zig"),
     });
+    const trace = b.option(bool, "trace", "Enable tracing") orelse false;
+    const debug = b.option(bool, "debug", "Debug opcodes") orelse false;
+    const bench = b.option(bool, "bench", "Benchmark mode (print time)") orelse false;
+    const options = b.addOptions();
+    options.addOption(bool, "trace", trace);
+    options.addOption(bool, "debug", debug);
+    options.addOption(bool, "bench", bench);
+    zee_module.addOptions("config", options);
 
     example_exe.root_module.addImport("zee", zee_module);
 

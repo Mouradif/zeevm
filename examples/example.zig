@@ -12,7 +12,9 @@ fn getExample(example_name: []const u8) ?ExampleProgram {
 fn runExample(example_name: []const u8) !void {
     const example = getExample(example_name);
     if (example) | program | {
+        var timer = try std.time.Timer.start();
         try program();
+        std.debug.print("Time: {d}ns\n", .{timer.read()});
     } else {
         std.debug.print("Unknown example file {s}\n", .{example_name});
     }

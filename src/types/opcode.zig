@@ -180,4 +180,9 @@ pub const OpCode = enum(u8) {
     pub fn println(self: OpCode, pc: u32) void {
         std.debug.print("[{x:0>4}] {s}\n", .{ pc, self.op().? });
     }
+
+    pub fn isPush(self: OpCode) bool {
+        const code = @intFromEnum(self);
+        return code >= 0x60 and code <= 0x7f;
+    }
 };
