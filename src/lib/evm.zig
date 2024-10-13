@@ -1,4 +1,5 @@
 const std = @import("std");
+const config = @import("config");
 
 const Block = @import("../types/block.zig");
 const Chain = @import("../types/chain.zig");
@@ -114,10 +115,21 @@ pub fn run(self: *EVM, run_params: EVMRunParams) ![]u8 {
     address_state.is_warm = true;
     try self.context.address_accesslist.put(self.context.address, {});
 
-    while (self.context.status == .Continue) {
-        _ = try self.context.runNextOperation();
-        if (self.context.status == .Spawn) {
-            self.context = self.context.child.?;
+    if (config.bench) {
+        var timer = try std.time.Timer.start();
+        while (self.context.status == .Continue) {
+            try self.context.runNextOperation();
+            if (self.context.status == .Spawn) {
+                self.context = self.context.child.?;
+            }
+        }
+        std.debug.print("Time: {d}ns\n", .{timer.read()});
+    } else {
+        while (self.context.status == .Continue) {
+            try self.context.runNextOperation();
+            if (self.context.status == .Spawn) {
+                self.context = self.context.child.?;
+            }
         }
     }
     return self.context.return_data;

@@ -157,25 +157,24 @@ pub fn startTransaction(self: *Context) !void {
     try self.spendGas(21000);
 }
 
-pub fn runNextOperation(self: *Context) !u64 {
+pub fn runNextOperation(self: *Context) !void {
     if (self.program_counter == 0) {
         self.startTransaction() catch {
             self.status = .OutOfGas;
-            return 0;
+            return;
         };
         self.loadCode();
     }
 
     if (self.code == null or self.program_counter >= self.code.?.len) {
         self.status = if (self.program_counter == 0) .Stop else .Panic;
-        return 0;
+        return;
     }
 
     const gas_start = self.gas;
     const byte: u8 = self.code.?[self.program_counter];
-    const opcode: OpCode = OpCode.from(byte);
     const pc = self.program_counter;
-    try Interpreter.run(self, opcode);
+    try Interpreter.runTable[byte](self);
 
     if (self.memory_expansion_cost > 0) {
         try self.spendGas(self.memory_expansion_cost);
@@ -183,6 +182,7 @@ pub fn runNextOperation(self: *Context) !u64 {
     }
     const gas_used = gas_start - self.gas;
     if (comptime config.trace) {
+        const opcode: OpCode = OpCode.from(byte);
         opcode.print(pc);
         if (opcode.isPush()) {
             printU256(self.stack.peek().?);
@@ -190,7 +190,6 @@ pub fn runNextOperation(self: *Context) !u64 {
         std.debug.print(" ({d})\n", .{gas_used});
     }
     self.advanceProgramCounter(1);
-    return gas_used;
 }
 
 pub fn advanceProgramCounter(self: *Context, n: u32) void {
