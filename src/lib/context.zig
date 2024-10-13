@@ -185,7 +185,7 @@ pub fn runNextOperation(self: *Context) !void {
         const opcode: OpCode = OpCode.from(byte);
         opcode.print(pc);
         if (opcode.isPush()) {
-            printU256(self.stack.peek().?);
+            printU256(self.stack.peek().?.*);
         }
         std.debug.print(" ({d})\n", .{gas_used});
     }

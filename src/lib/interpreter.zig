@@ -231,215 +231,270 @@ fn op_stop(context: *Context) !void {
 
 fn op_add(context: *Context) !void {
     try context.spendGas(3);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.peek().?;
     if (comptime config.debug) {
-        std.debug.print("{d} + {d} = {d}\n", .{ a, b, a +% b });
+        std.debug.print("{d} + {d} = {d}\n", .{
+            a,
+            b.*,
+            a +% b.*,
+        });
     }
-    try context.stack.push(a +% b);
+    b.* = a +% b.*;
 }
 
 fn op_mul(context: *Context) !void {
     try context.spendGas(5);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.peek().?;
     if (comptime config.debug) {
-        std.debug.print("{d} * {d} = {d}\n", .{ a, b, a *% b });
+        std.debug.print("{d} * {d} = {d}\n", .{
+            a,
+            b.*,
+            a *% b.*,
+        });
     }
-    try context.stack.push(a *% b);
+    b.* = a *% b.*;
 }
 
 fn op_sub(context: *Context) !void {
     try context.spendGas(3);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.peek().?;
     if (comptime config.debug) {
-        std.debug.print("{d} - {d} = {d}\n", .{ a, b, a -% b });
+        std.debug.print("{d} - {d} = {d}\n", .{
+            a,
+            b.*,
+            a -% b.*,
+        });
     }
-    try context.stack.push(a -% b);
+    b.* = a -% b.*;
 }
 
 fn op_div(context: *Context) !void {
     try context.spendGas(5);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
-    const result = if (b == 0) 0 else @divTrunc(a, b);
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.peek().?;
+    const result = if (b.* == 0) 0 else @divTrunc(a, b.*);
     if (comptime config.debug) {
-        std.debug.print("{d} / {d} = {d}\n", .{ a, b, result });
+        std.debug.print("{d} / {d} = {d}\n", .{
+            a,
+            b.*,
+            result,
+        });
     }
-    try context.stack.push(result);
+    b.* = result;
 }
 
 fn op_sdiv(context: *Context) !void {
     try context.spendGas(5);
-    const a: i256 = @bitCast(try context.stack.pop());
-    const b: i256 = @bitCast(try context.stack.pop());
-    const result = if (b == 0) 0 else @divTrunc(a, b);
+    try context.stack.ensureHasAtLeast(2);
+    const a: i256 = @bitCast(context.stack.pop_unsafe());
+    const b = context.stack.peek().?;
+    const result = if (b.* == 0) 0 else @divTrunc(a, @as(i256, @bitCast(b.*)));
     if (comptime config.debug) {
-        std.debug.print("{d} / {d} = {d}\n", .{ @as(u256, @bitCast(a)), @as(u256, @bitCast(b)), @as(u256, @bitCast(result)) });
+        std.debug.print("{d} / {d} = {d}\n", .{
+            @as(u256, @bitCast(a)),
+            b.*,
+            @as(u256, @bitCast(result)),
+        });
     }
-    try context.stack.push(@as(u256, @bitCast(result)));
+    b.* = @bitCast(result);
 }
 
 fn op_mod(context: *Context) !void {
     try context.spendGas(5);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
-    const result = if (b == 0) 0 else @mod(a, b);
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.peek().?;
+    const result = if (b.* == 0) 0 else @mod(a, b.*);
     if (comptime config.debug) {
-        std.debug.print("{d} % {d} = {d}\n", .{ a, b, result });
+        std.debug.print("{d} % {d} = {d}\n", .{
+            a,
+            b.*,
+            result,
+        });
     }
-    try context.stack.push(result);
+    b.* = result;
 }
 
 fn op_smod(context: *Context) !void {
     try context.spendGas(5);
-    const a: i256 = @bitCast(try context.stack.pop());
-    const b: i256 = @bitCast(try context.stack.pop());
-    const result = if (b == 0) 0 else @rem(a, b);
+    try context.stack.ensureHasAtLeast(2);
+    const a: i256 = @bitCast(context.stack.pop_unsafe());
+    const b = context.stack.peek().?;
+    const result = if (b.* == 0) 0 else @rem(a, @as(i256, @bitCast(b.*)));
     if (comptime config.debug) {
-        std.debug.print("{d} % {d} = {d}\n", .{ @as(u256, @bitCast(a)), @as(u256, @bitCast(b)), @as(u256, @bitCast(result)) });
+        std.debug.print("{d} % {d} = {d}\n", .{
+            @as(u256, @bitCast(a)),
+            b.*,
+            @as(u256, @bitCast(result)),
+        });
     }
-    try context.stack.push(@as(u256, @bitCast(result)));
+    b.* = @bitCast(result);
 }
 
 fn op_addmod(context: *Context) !void {
     try context.spendGas(8);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
-    const N = try context.stack.pop();
-    const result = if (N == 0) 0 else @mod(a + b, N);
-    try context.stack.push(result);
+    try context.stack.ensureHasAtLeast(3);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.pop_unsafe();
+    const N = context.stack.peek().?;
+    const result = if (N.* == 0) 0 else @mod(a + b, N.*);
+    N.* = result;
 }
 
 fn op_mulmod(context: *Context) !void {
     try context.spendGas(8);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
-    const N = try context.stack.pop();
-    const result = if (N == 0) 0 else @mod(a * b, N);
-    try context.stack.push(result);
+    try context.stack.ensureHasAtLeast(3);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.pop_unsafe();
+    const N = context.stack.peek().?;
+    const result = if (N.* == 0) 0 else @mod(a * b, N.*);
+    N.* = result;
 }
 
 fn op_exp(context: *Context) !void {
     try context.spendGas(10);
-    const a = try context.stack.pop();
-    const exponent = try context.stack.pop();
-    try context.stack.push(std.math.pow(u256, a, exponent));
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const exponent = context.stack.peek().?;
+    exponent.* = std.math.pow(u256, a, exponent.*);
 }
 
 fn op_signextend(context: *Context) !void {
     try context.spendGas(5);
-    const b = try context.stack.pop();
-    const x = try context.stack.pop();
-    try context.stack.push(signExtend(b, x));
+    try context.stack.ensureHasAtLeast(2);
+    const b = context.stack.pop_unsafe();
+    const x = context.stack.peek().?;
+    x.* = signExtend(b, x.*);
 }
 
 fn op_lt(context: *Context) !void {
     try context.spendGas(3);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
-    try context.stack.push(@intFromBool(a < b));
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.peek().?;
+    b.* = @intFromBool(a < b.*);
 }
 
 fn op_gt(context: *Context) !void {
     try context.spendGas(3);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
-    try context.stack.push(@intFromBool(a > b));
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.peek().?;
+    b.* = @intFromBool(a > b.*);
 }
 
 fn op_slt(context: *Context) !void {
     try context.spendGas(3);
-    const a: i256 = @bitCast(try context.stack.pop());
-    const b: i256 = @bitCast(try context.stack.pop());
+    try context.stack.ensureHasAtLeast(2);
+    const a: i256 = @bitCast(context.stack.pop_unsafe());
+    const b = context.stack.peek().?;
     if (comptime config.debug) {
-        std.debug.print("SLT {d} < {d}\n", .{ @as(u256, @bitCast(a)), @as(u256, @bitCast(b)) });
+        std.debug.print("SLT {d} < {d}\n", .{
+            @as(u256, @bitCast(a)),
+            b.*,
+        });
     }
-    try context.stack.push(@intFromBool(a < b));
+    b.* = @intFromBool(a < @as(i256, @bitCast(b.*)));
 }
 
 fn op_sgt(context: *Context) !void {
     try context.spendGas(3);
-    const a: i256 = @bitCast(try context.stack.pop());
-    const b: i256 = @bitCast(try context.stack.pop());
-    try context.stack.push(@intFromBool(a > b));
+    try context.stack.ensureHasAtLeast(2);
+    const a: i256 = @bitCast(context.stack.pop_unsafe());
+    const b = context.stack.peek().?;
+    b.* = @intFromBool(a > @as(i256, @bitCast(b.*)));
 }
 
 fn op_eq(context: *Context) !void {
     try context.spendGas(3);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
-    try context.stack.push(@intFromBool(a == b));
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.peek().?;
+    b.* = @intFromBool(a == b.*);
 }
 
 fn op_iszero(context: *Context) !void {
     try context.spendGas(3);
-    const a = try context.stack.pop();
-    try context.stack.push(@intFromBool(a == 0));
+    try context.stack.ensureHasAtLeast(1);
+    const a = context.stack.peek().?;
+    a.* = @intFromBool(a.* == 0);
 }
 
 fn op_and(context: *Context) !void {
     try context.spendGas(3);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
-    try context.stack.push(a & b);
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.peek().?;
+    b.* = a & b.*;
 }
 
 fn op_or(context: *Context) !void {
     try context.spendGas(3);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
-    try context.stack.push(a | b);
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.peek().?;
+    b.* = a | b.*;
 }
 
 fn op_xor(context: *Context) !void {
     try context.spendGas(3);
-    const a = try context.stack.pop();
-    const b = try context.stack.pop();
-    try context.stack.push(a ^ b);
+    try context.stack.ensureHasAtLeast(2);
+    const a = context.stack.pop_unsafe();
+    const b = context.stack.peek().?;
+    b.* = a ^ b.*;
 }
 
 fn op_not(context: *Context) !void {
     try context.spendGas(3);
-    const a = try context.stack.pop();
-    try context.stack.push(~a);
+    try context.stack.ensureHasAtLeast(1);
+    const a = context.stack.peek().?;
+    a.* = ~a.*;
 }
 
 fn op_byte(context: *Context) !void {
     try context.spendGas(3);
-    const i = try context.stack.pop();
-    const x = try context.stack.pop();
-    try context.stack.push(getByte(i, x));
+    try context.stack.ensureHasAtLeast(2);
+    const i = context.stack.pop_unsafe();
+    const x = context.stack.peek().?;
+    x.* = getByte(i, x.*);
 }
 
 fn op_shl(context: *Context) !void {
     try context.spendGas(3);
-    const shift = try context.stack.pop();
-    const value = try context.stack.pop();
-    try context.stack.push(leftShifted(shift, value));
+    try context.stack.ensureHasAtLeast(2);
+    const shift = context.stack.pop_unsafe();
+    const value = context.stack.peek().?;
+    value.* = leftShifted(shift, value.*);
 }
 
 fn op_shr(context: *Context) !void {
     try context.spendGas(3);
-    const shift = try context.stack.pop();
-    const value = try context.stack.pop();
-    try context.stack.push(rightShifted(shift, value));
+    try context.stack.ensureHasAtLeast(2);
+    const shift = context.stack.pop_unsafe();
+    const value = context.stack.peek().?;
+    value.* = rightShifted(shift, value.*);
 }
 
 fn op_sar(context: *Context) !void {
     try context.spendGas(3);
-    const shift = try context.stack.pop();
-    const value = try context.stack.pop();
-    const isNegative: bool = ((1 << 255) & value) > 0;
-    var result = rightShifted(shift, value);
-    if (isNegative) {
+    try context.stack.ensureHasAtLeast(2);
+    const shift = context.stack.pop_unsafe();
+    const value = context.stack.peek().?;
+    var result = rightShifted(shift, value.*);
+    if (((1 << 255) & value.*) > 0) {
         const i256_min: i256 = -1;
         const u256_max: u256 = @bitCast(i256_min);
         const mask = leftShifted(256 - shift, u256_max);
         result |= mask;
     }
-    try context.stack.push(result);
+    value.* = result;
 }
 
 fn op_keccak256(context: *Context) !void {
@@ -449,13 +504,13 @@ fn op_keccak256(context: *Context) !void {
         const new_memory_cost = context.memory.cost();
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
     }
-    const offset = try context.stack.pop();
-    const length = try context.stack.pop();
-    const data = try context.memory.read(offset, length);
-    const dynamic_cost = 6 * @divFloor(length + 31, 32);
+    try context.stack.ensureHasAtLeast(2);
+    const offset = context.stack.pop_unsafe();
+    const length = context.stack.peek().?;
+    const data = try context.memory.read(offset, length.*);
+    const dynamic_cost = 6 * @divFloor(length.* + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
-    defer context.memory.allocator.free(data);
-    try context.stack.push(Hash.keccak256(data));
+    length.* = Hash.keccak256(data);
 }
 
 fn op_address(context: *Context) !void {
@@ -465,10 +520,11 @@ fn op_address(context: *Context) !void {
 
 fn op_balance(context: *Context) !void {
     try context.spendGas(100);
-    const address = try context.stack.pop();
-    const addr: u160 = @truncate(address);
+    try context.stack.ensureHasAtLeast(1);
+    const address = context.stack.peek().?;
+    const addr: u160 = @truncate(address.*);
     const address_state = try context.loadAddress(addr);
-    try context.stack.push(address_state.balance);
+    address.* = address_state.balance;
 }
 
 fn op_origin(context: *Context) !void {
@@ -488,16 +544,17 @@ fn op_callvalue(context: *Context) !void {
 
 fn op_calldataload(context: *Context) !void {
     try context.spendGas(3);
-    const i = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(1);
+    const i = context.stack.peek().?;
     var calldata_bytes: [32]u8 = undefined;
     for (0..32) |index| {
-        const src = @as(usize, @truncate(i)) + index;
+        const src = @as(usize, @truncate(i.*)) + index;
         const dst = 31 - index;
-        const byte = if (i + index >= context.call_data.len) 0 else context.call_data[src];
+        const byte = if (i.* + index >= context.call_data.len) 0 else context.call_data[src];
         calldata_bytes[dst] = byte;
     }
     const word: u256 = @bitCast(calldata_bytes);
-    try context.stack.push(word);
+    i.* = word;
 }
 
 fn op_calldatasize(context: *Context) !void {
@@ -512,9 +569,10 @@ fn op_calldatacopy(context: *Context) !void {
         const new_memory_cost = context.memory.cost();
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
     }
-    const dest_offset = try context.stack.pop();
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(3);
+    const dest_offset = context.stack.pop_unsafe();
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
     const dynamic_cost = 3 * @divFloor(size + 31, 32);
     try context.spendGas(@as(u64, @truncate(dynamic_cost)));
     while (context.memory.buffer.items.len < dest_offset + size) {
@@ -543,9 +601,10 @@ fn op_codecopy(context: *Context) !void {
         const new_memory_cost = context.memory.cost();
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
     }
-    const dest_offset = try context.stack.pop();
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(3);
+    const dest_offset = context.stack.pop_unsafe();
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
     const dynamic_cost = 3 * @divFloor(size + 31, 32);
     try context.spendGas(@as(u64, @truncate(dynamic_cost)));
     const address_state = try context.loadAddress(context.address);
@@ -569,10 +628,11 @@ fn op_gasprice(context: *Context) !void {
 
 fn op_extcodesize(context: *Context) !void {
     try context.spendGas(100);
-    const address = try context.stack.pop();
-    const addr: u160 = @truncate(address);
+    try context.stack.ensureHasAtLeast(1);
+    const address = context.stack.peek().?;
+    const addr: u160 = @truncate(address.*);
     const address_state = try context.loadAddress(addr);
-    try context.stack.push(@as(u256, @intCast(address_state.code.?.len)));
+    address.* = @as(u256, @intCast(address_state.code.?.len));
 }
 
 fn op_extcodecopy(context: *Context) !void {
@@ -582,10 +642,11 @@ fn op_extcodecopy(context: *Context) !void {
         const new_memory_cost = context.memory.cost();
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
     }
-    const address = try context.stack.pop();
-    const dest_offset = try context.stack.pop();
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(4);
+    const address = context.stack.pop_unsafe();
+    const dest_offset = context.stack.pop_unsafe();
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
     const dynamic_cost = 3 * @divFloor(size + 31, 32);
     const addr: u160 = @truncate(address);
     try context.spendGas(@as(u64, @truncate(dynamic_cost)));
@@ -617,9 +678,10 @@ fn op_returndatacopy(context: *Context) !void {
         const new_memory_cost = context.memory.cost();
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
     }
-    const dest_offset = try context.stack.pop();
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(3);
+    const dest_offset = context.stack.pop_unsafe();
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
     const dynamic_cost = 3 * @divFloor(size + 31, 32);
     try context.spendGas(@as(u64, @truncate(dynamic_cost)));
     while (context.memory.buffer.items.len < dest_offset + size) {
@@ -641,20 +703,22 @@ fn op_returndatacopy(context: *Context) !void {
 
 fn op_extcodehash(context: *Context) !void {
     try context.spendGas(100);
-    const address = try context.stack.pop();
-    const addr: u160 = @truncate(address);
+    try context.stack.ensureHasAtLeast(1);
+    const address = context.stack.peek().?;
+    const addr: u160 = @truncate(address.*);
     _ = try context.loadAddress(addr);
-    try context.stack.push(context.codeHash(addr));
+    address.* = context.codeHash(addr);
 }
 
 fn op_blockhash(context: *Context) !void {
     try context.spendGas(20);
-    const block_number = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(1);
+    const block_number = context.stack.peek().?;
     var block_hash: u256 = 0;
-    if (block_number < context.block.number and context.block.number - block_number <= 256) {
-        block_hash = context.blockHash(block_number);
+    if (block_number.* < context.block.number and context.block.number - block_number.* <= 256) {
+        block_hash = context.blockHash(block_number.*);
     }
-    try context.stack.push(block_hash);
+    block_number.* = block_hash;
 }
 
 fn op_coinbase(context: *Context) !void {
@@ -720,9 +784,10 @@ fn op_mload(context: *Context) !void {
         const new_memory_cost = context.memory.cost();
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
     }
-    const offset = try context.stack.pop();
-    const memory_word = try context.memory.load(offset);
-    try context.stack.push(memory_word);
+    try context.stack.ensureHasAtLeast(1);
+    const offset = context.stack.peek().?;
+    const memory_word = try context.memory.load(offset.*);
+    offset.* = memory_word;
 }
 
 fn op_mstore(context: *Context) !void {
@@ -732,8 +797,9 @@ fn op_mstore(context: *Context) !void {
         const new_memory_cost = context.memory.cost();
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
     }
-    const offset = try context.stack.pop();
-    const value = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(2);
+    const offset = context.stack.pop_unsafe();
+    const value = context.stack.pop_unsafe();
     try context.memory.store(offset, value);
 }
 
@@ -744,23 +810,25 @@ fn op_mstore8(context: *Context) !void {
         const new_memory_cost = context.memory.cost();
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
     }
-    const offset = try context.stack.pop();
-    const value = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(2);
+    const offset = context.stack.pop_unsafe();
+    const value = context.stack.pop_unsafe();
     const b: u8 = @truncate(value);
     try context.memory.storeByte(offset, b);
 }
 
 fn op_sload(context: *Context) !void {
     try context.spendGas(100);
-    const slot = try context.stack.pop();
-    const value = try context.loadStorageSlot(slot);
-    try context.stack.push(value);
+    try context.stack.ensureHasAtLeast(1);
+    const slot = context.stack.peek().?;
+    slot.* = try context.loadStorageSlot(slot.*);
 }
 
 fn op_sstore(context: *Context) !void {
     try context.spendGas(100);
-    const slot = try context.stack.pop();
-    const value = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(2);
+    const slot = context.stack.pop_unsafe();
+    const value = context.stack.pop_unsafe();
     try context.writeStorageSlot(slot, value);
 }
 
@@ -773,8 +841,9 @@ fn op_jump(context: *Context) !void {
 
 fn op_jumpi(context: *Context) !void {
     try context.spendGas(10);
-    const counter = try context.stack.pop();
-    const b = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(2);
+    const counter = context.stack.pop_unsafe();
+    const b = context.stack.pop_unsafe();
     if (b > 0) {
         context.program_counter = @truncate(counter);
         try context.ensureValidJumpDestination();
@@ -803,16 +872,18 @@ fn op_jumpdest(context: *Context) !void {
 
 fn op_tload(context: *Context) !void {
     try context.spendGas(100);
-    const key = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(1);
+    const key = context.stack.peek().?;
     const address_state = try context.loadAddress(context.address);
-    const word = address_state.tLoad(key);
-    try context.stack.push(word);
+    const word = address_state.tLoad(key.*);
+    key.* = word;
 }
 
 fn op_tstore(context: *Context) !void {
     try context.spendGas(100);
-    const key = try context.stack.pop();
-    const value = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(2);
+    const key = context.stack.pop_unsafe();
+    const value = context.stack.pop_unsafe();
     const address_state = try context.loadAddress(context.address);
     try address_state.tStore(key, value);
 }
@@ -1092,10 +1163,10 @@ fn op_log0(context: *Context) !void {
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
         context.allocator.free(topics);
     }
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(2);
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
     const data = try context.memory.read(offset, size);
-    defer context.memory.allocator.free(data);
     const dynamic_cost = 8 * @divFloor(size + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
     try context.emitLog(topics, data);
@@ -1110,11 +1181,11 @@ fn op_log1(context: *Context) !void {
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
         context.allocator.free(topics);
     }
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
-    topics[0] = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(3);
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
+    topics[0] = context.stack.pop_unsafe();
     const data = try context.memory.read(offset, size);
-    defer context.memory.allocator.free(data);
     const dynamic_cost = 8 * @divFloor(size + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
     try context.emitLog(topics, data);
@@ -1129,12 +1200,12 @@ fn op_log2(context: *Context) !void {
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
         context.allocator.free(topics);
     }
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
-    topics[0] = try context.stack.pop();
-    topics[1] = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(4);
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
+    topics[0] = context.stack.pop_unsafe();
+    topics[1] = context.stack.pop_unsafe();
     const data = try context.memory.read(offset, size);
-    defer context.memory.allocator.free(data);
     const dynamic_cost = 8 * @divFloor(size + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
     try context.emitLog(topics, data);
@@ -1149,13 +1220,13 @@ fn op_log3(context: *Context) !void {
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
         context.allocator.free(topics);
     }
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
-    topics[0] = try context.stack.pop();
-    topics[1] = try context.stack.pop();
-    topics[2] = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(5);
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
+    topics[0] = context.stack.pop_unsafe();
+    topics[1] = context.stack.pop_unsafe();
+    topics[2] = context.stack.pop_unsafe();
     const data = try context.memory.read(offset, size);
-    defer context.memory.allocator.free(data);
     const dynamic_cost = 8 * @divFloor(size + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
     try context.emitLog(topics, data);
@@ -1170,14 +1241,14 @@ fn op_log4(context: *Context) !void {
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
         context.allocator.free(topics);
     }
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
-    topics[0] = try context.stack.pop();
-    topics[1] = try context.stack.pop();
-    topics[2] = try context.stack.pop();
-    topics[3] = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(6);
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
+    topics[0] = context.stack.pop_unsafe();
+    topics[1] = context.stack.pop_unsafe();
+    topics[2] = context.stack.pop_unsafe();
+    topics[3] = context.stack.pop_unsafe();
     const data = try context.memory.read(offset, size);
-    defer context.memory.allocator.free(data);
     const dynamic_cost = 8 * @divFloor(size + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
     try context.emitLog(topics, data);
@@ -1185,51 +1256,51 @@ fn op_log4(context: *Context) !void {
 
 fn op_create(context: *Context) !void {
     try context.spendGas(32000);
-    const value = try context.stack.pop();
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(3);
+    const value = context.stack.pop_unsafe();
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.peek().?;
     _ = value;
     _ = offset;
-    _ = size;
-    try context.stack.push(0);
+    size.* = 0;
 }
 
 fn op_call(context: *Context) !void {
     try context.spendGas(100);
-    const gas = try context.stack.pop();
-    const address = try context.stack.pop();
-    const value = try context.stack.pop();
-    const args_offset = try context.stack.pop();
-    const args_size = try context.stack.pop();
-    const ret_offset = try context.stack.pop();
-    const ret_size = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(7);
+    const gas = context.stack.pop_unsafe();
+    const address = context.stack.pop_unsafe();
+    const value = context.stack.pop_unsafe();
+    const args_offset = context.stack.pop_unsafe();
+    const args_size = context.stack.pop_unsafe();
+    const ret_offset = context.stack.pop_unsafe();
+    const ret_size = context.stack.peek().?;
     _ = gas;
     _ = address;
     _ = value;
     _ = args_offset;
     _ = args_size;
     _ = ret_offset;
-    _ = ret_size;
-    try context.stack.push(1);
+    ret_size.* = 1;
 }
 
 fn op_callcode(context: *Context) !void {
     try context.spendGas(100);
-    const gas = try context.stack.pop();
-    const address = try context.stack.pop();
-    const value = try context.stack.pop();
-    const args_offset = try context.stack.pop();
-    const args_size = try context.stack.pop();
-    const ret_offset = try context.stack.pop();
-    const ret_size = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(7);
+    const gas = context.stack.pop_unsafe();
+    const address = context.stack.pop_unsafe();
+    const value = context.stack.pop_unsafe();
+    const args_offset = context.stack.pop_unsafe();
+    const args_size = context.stack.pop_unsafe();
+    const ret_offset = context.stack.pop_unsafe();
+    const ret_size = context.stack.peek().?;
     _ = gas;
     _ = address;
     _ = value;
     _ = args_offset;
     _ = args_size;
     _ = ret_offset;
-    _ = ret_size;
-    try context.stack.push(1);
+    ret_size.* = 1;
 }
 
 fn op_return(context: *Context) !void {
@@ -1238,57 +1309,58 @@ fn op_return(context: *Context) !void {
         const new_memory_cost = context.memory.cost();
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
     }
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
-    context.return_data = try context.memory.read(offset, size);
+    try context.stack.ensureHasAtLeast(2);
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
+    context.return_data = try context.memory.copy(offset, size);
     context.status = .Return;
 }
 
 fn op_delegatecall(context: *Context) !void {
     try context.spendGas(100);
-    const gas = try context.stack.pop();
-    const address = try context.stack.pop();
-    const args_offset = try context.stack.pop();
-    const args_size = try context.stack.pop();
-    const ret_offset = try context.stack.pop();
-    const ret_size = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(6);
+    const gas = context.stack.pop_unsafe();
+    const address = context.stack.pop_unsafe();
+    const args_offset = context.stack.pop_unsafe();
+    const args_size = context.stack.pop_unsafe();
+    const ret_offset = context.stack.pop_unsafe();
+    const ret_size = context.stack.peek().?;
     _ = gas;
     _ = address;
     _ = args_offset;
     _ = args_size;
     _ = ret_offset;
-    _ = ret_size;
-    try context.stack.push(1);
+    ret_size.* = 1;
 }
 
 fn op_create2(context: *Context) !void {
     try context.spendGas(32000);
-    const value = try context.stack.pop();
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
-    const salt = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(4);
+    const value = context.stack.pop_unsafe();
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
+    const salt = context.stack.peek().?;
     _ = value;
     _ = offset;
     _ = size;
-    _ = salt;
-    try context.stack.push(0);
+    salt.* = 0;
 }
 
 fn op_staticcall(context: *Context) !void {
     try context.spendGas(100);
-    const gas = try context.stack.pop();
-    const address = try context.stack.pop();
-    const args_offset = try context.stack.pop();
-    const args_size = try context.stack.pop();
-    const ret_offset = try context.stack.pop();
-    const ret_size = try context.stack.pop();
+    try context.stack.ensureHasAtLeast(6);
+    const gas = context.stack.pop_unsafe();
+    const address = context.stack.pop_unsafe();
+    const args_offset = context.stack.pop_unsafe();
+    const args_size = context.stack.pop_unsafe();
+    const ret_offset = context.stack.pop_unsafe();
+    const ret_size = context.stack.peek().?;
     _ = gas;
     _ = address;
     _ = args_offset;
     _ = args_size;
     _ = ret_offset;
-    _ = ret_size;
-    try context.stack.push(1);
+    ret_size.* = 1;
 }
 
 fn op_revert(context: *Context) !void {
@@ -1297,9 +1369,10 @@ fn op_revert(context: *Context) !void {
         const new_memory_cost = context.memory.cost();
         context.memory_expansion_cost = new_memory_cost - initial_memory_cost;
     }
-    const offset = try context.stack.pop();
-    const size = try context.stack.pop();
-    context.return_data = try context.memory.read(offset, size);
+    try context.stack.ensureHasAtLeast(2);
+    const offset = context.stack.pop_unsafe();
+    const size = context.stack.pop_unsafe();
+    context.return_data = try context.memory.copy(offset, size);
     context.status = .Revert;
 }
 

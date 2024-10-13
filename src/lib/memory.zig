@@ -56,7 +56,7 @@ pub fn load(self: *Memory, offset: u256) !u256 {
     return @byteSwap(output);
 }
 
-pub fn read(self: *Memory, offset: u256, len: u256) ![]u8 {
+pub fn copy(self: *Memory, offset: u256, len: u256) ![]u8 {
     while (self.buffer.items.len < offset + len) {
         try self.expand();
     }
@@ -65,6 +65,15 @@ pub fn read(self: *Memory, offset: u256, len: u256) ![]u8 {
     const data = try self.allocator.alloc(u8, length);
     @memcpy(data, self.buffer.items[ofs .. ofs + length]);
     return data;
+}
+
+pub fn read(self: *Memory, offset: u256, len: u256) ![]u8 {
+    while (self.buffer.items.len < offset + len) {
+        try self.expand();
+    }
+    const length: usize = @truncate(len);
+    const ofs: usize = @truncate(offset);
+    return self.buffer.items[ofs .. ofs + length];
 }
 
 pub fn cost(self: *Memory) u64 {

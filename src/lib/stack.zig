@@ -43,17 +43,23 @@ pub fn swap(self: *Stack, i: u8) !void {
     self.items[index_a] ^= self.items[index_b];
 }
 
-pub fn peek(self: *Stack) ?u256 {
+pub fn peek(self: *Stack) ?*u256 {
     if (self.head == 0) {
         return null;
     }
-    return self.items[self.head - 1];
+    return &self.items[self.head - 1];
 }
 
 pub fn pop(self: *Stack) !u256 {
     if (self.head == 0) {
         return StackError.Underflow;
     }
+    const item = self.items[self.head - 1];
+    self.head -= 1;
+    return item;
+}
+
+pub fn pop_unsafe(self: *Stack) u256 {
     const item = self.items[self.head - 1];
     self.items[self.head - 1] = 0;
     self.head -= 1;
@@ -96,7 +102,7 @@ test "pop" {
     try stack.push(42);
     try stack.push(100);
     const tip = stack.pop();
-    try std.testing.expectEqual(42, stack.peek());
+    try std.testing.expectEqual(42, stack.peek().?.*);
     try std.testing.expectEqual(100, tip);
 }
 
@@ -151,7 +157,7 @@ test "push overflow" {
     try std.testing.expectError(StackError.Overflow, err);
     _ = try stack.pop();
     try stack.push(42);
-    try std.testing.expectEqual(42, stack.peek());
+    try std.testing.expectEqual(42, stack.peek().?.*);
 }
 
 test "dup overflow" {
@@ -165,7 +171,7 @@ test "dup overflow" {
     try std.testing.expectError(StackError.Overflow, err);
     _ = try stack.pop();
     try stack.push(42);
-    try std.testing.expectEqual(42, stack.peek());
+    try std.testing.expectEqual(42, stack.peek().?.*);
 }
 
 test "pop underflow" {

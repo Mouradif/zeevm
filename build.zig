@@ -6,6 +6,14 @@ pub fn build(b: *std.Build) void {
         .preferred_optimize_mode = .ReleaseFast,
     });
 
+    const trace = b.option(bool, "trace", "Enable tracing") orelse false;
+    const debug = b.option(bool, "debug", "Debug opcodes") orelse false;
+    const bench = b.option(bool, "bench", "Benchmark mode (print time)") orelse false;
+    const options = b.addOptions();
+    options.addOption(bool, "trace", trace);
+    options.addOption(bool, "debug", debug);
+    options.addOption(bool, "bench", bench);
+
     const lib = b.addStaticLibrary(.{
         .name = "zee",
         .root_source_file = b.path("src/root.zig"),
@@ -19,6 +27,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    lib_unit_tests.root_module.addOptions("config", options);
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 
@@ -38,13 +48,6 @@ pub fn build(b: *std.Build) void {
     const zee_module = b.addModule("zee", .{
         .root_source_file = b.path("src/root.zig"),
     });
-    const trace = b.option(bool, "trace", "Enable tracing") orelse false;
-    const debug = b.option(bool, "debug", "Debug opcodes") orelse false;
-    const bench = b.option(bool, "bench", "Benchmark mode (print time)") orelse false;
-    const options = b.addOptions();
-    options.addOption(bool, "trace", trace);
-    options.addOption(bool, "debug", debug);
-    options.addOption(bool, "bench", bench);
     zee_module.addOptions("config", options);
 
     example_exe.root_module.addImport("zee", zee_module);

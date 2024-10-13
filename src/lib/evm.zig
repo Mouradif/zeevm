@@ -123,7 +123,7 @@ pub fn run(self: *EVM, run_params: EVMRunParams) ![]u8 {
                 self.context = self.context.child.?;
             }
         }
-        std.debug.print("Time: {d}ns\n", .{timer.read()});
+        std.debug.print("elapsed: {d}ms\n", .{@as(f64, @floatFromInt(timer.read())) / 1000000});
     } else {
         while (self.context.status == .Continue) {
             try self.context.runNextOperation();
