@@ -81,7 +81,7 @@ status: ContextStatus = .Continue,
 stack: Stack = Stack{},
 parent: ?*Context = null,
 child: ?*Context = null,
-code: ?[]const u8 = null,
+code: []const u8 = "",
 program_counter: u32 = 0,
 memory_expansion_cost: u64 = 0,
 log_emitter: *const LogEmitter,
@@ -166,13 +166,13 @@ pub fn runNextOperation(self: *Context) !void {
         self.loadCode();
     }
 
-    if (self.code == null or self.program_counter >= self.code.?.len) {
+    if (self.program_counter >= self.code.len) {
         self.status = if (self.program_counter == 0) .Stop else .Panic;
         return;
     }
 
     const gas_start = self.gas;
-    const byte: u8 = self.code.?[self.program_counter];
+    const byte: u8 = self.code[self.program_counter];
     const pc = self.program_counter;
     try Interpreter.runTable[byte](self);
 
@@ -261,11 +261,11 @@ pub fn push(self: *Context, n: u6) !void {
     var bytes: [32]u8 = @bitCast(@as(u256, 0));
     for (0..n) |i| {
         const index = self.program_counter + (n - i);
-        if (index > self.code.?.len) {
+        if (index > self.code.len) {
             self.status = .Panic;
             return;
         }
-        bytes[i] = self.code.?[index];
+        bytes[i] = self.code[index];
     }
 
     const word: u256 = @bitCast(bytes);
@@ -285,7 +285,7 @@ pub fn swap(self: *Context, n: u5) !void {
 }
 
 pub fn ensureValidJumpDestination(self: *Context) !void {
-    const opbyte = self.code.?[self.program_counter];
+    const opbyte = self.code[self.program_counter];
     const opcode = OpCode.from(opbyte);
     if (opcode != .JUMPDEST) {
         self.status = .Panic;
@@ -298,9 +298,9 @@ pub fn emitLog(self: *Context, topics: []u256, data: []u8) !void {
     try self.log_emitter(topics, data);
 }
 
-pub fn getCode(self: *const Context, address: u160) ?[]const u8 {
+pub fn getCode(self: *const Context, address: u160) []const u8 {
     if (self.state.get(address)) |state| {
-        return state.code;
+        return state.code orelse "";
     }
     return "";
 }
