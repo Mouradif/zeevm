@@ -8,195 +8,21 @@ const Context = @import("context.zig");
 const AddressState = @import("address_state.zig");
 
 fn signExtend(b: u256, x: u256) u256 {
-    switch (b) {
-        0 => {
-            const y: i8 = @bitCast(@as(u8, @truncate(x)));
+    const intTypes = .{
+        i8,   i16,  i24,  i32,  i40,  i48,  i56,  i64,  i72,  i80,  i88,  i96,  i104, i112, i120,
+        i128, i136, i144, i152, i160, i168, i176, i184, i192, i200, i208, i216, i224, i232, i240,
+        i248,
+    };
+
+    inline for (intTypes, 0..) |T, i| {
+        if (@as(u256, i) == b) {
+            const signedX: i256 = @bitCast(x);
+            const y: T = @as(T, @truncate(signedX));
             const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        1 => {
-            const y: i16 = @bitCast(@as(u16, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        2 => {
-            const y: i24 = @bitCast(@as(u24, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        3 => {
-            const y: i32 = @bitCast(@as(u32, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        4 => {
-            const y: i40 = @bitCast(@as(u40, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        5 => {
-            const y: i48 = @bitCast(@as(u48, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        6 => {
-            const y: i56 = @bitCast(@as(u56, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        7 => {
-            const y: i64 = @bitCast(@as(u64, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        8 => {
-            const y: i72 = @bitCast(@as(u72, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        9 => {
-            const y: i80 = @bitCast(@as(u80, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        10 => {
-            const y: i88 = @bitCast(@as(u88, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        11 => {
-            const y: i96 = @bitCast(@as(u96, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        12 => {
-            const y: i104 = @bitCast(@as(u104, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        13 => {
-            const y: i112 = @bitCast(@as(u112, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        14 => {
-            const y: i120 = @bitCast(@as(u120, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        15 => {
-            const y: i128 = @bitCast(@as(u128, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        16 => {
-            const y: i136 = @bitCast(@as(u136, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        17 => {
-            const y: i144 = @bitCast(@as(u144, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        18 => {
-            const y: i152 = @bitCast(@as(u152, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        19 => {
-            const y: i160 = @bitCast(@as(u160, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        20 => {
-            const y: i168 = @bitCast(@as(u168, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        21 => {
-            const y: i176 = @bitCast(@as(u176, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        22 => {
-            const y: i184 = @bitCast(@as(u184, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        23 => {
-            const y: i192 = @bitCast(@as(u192, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        24 => {
-            const y: i200 = @bitCast(@as(u200, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        25 => {
-            const y: i208 = @bitCast(@as(u208, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        26 => {
-            const y: i216 = @bitCast(@as(u216, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        27 => {
-            const y: i224 = @bitCast(@as(u224, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        28 => {
-            const y: i232 = @bitCast(@as(u232, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        29 => {
-            const y: i240 = @bitCast(@as(u240, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        30 => {
-            const y: i248 = @bitCast(@as(u248, @truncate(x)));
-            const w: i256 = y;
-            const z: u256 = @bitCast(w);
-            return z;
-        },
-        else => return x,
+            return @bitCast(w);
+        }
     }
+    return x;
 }
 
 fn getByte(i: u256, x: u256) u256 {
@@ -217,6 +43,23 @@ fn rightShifted(shift: u256, x: u256) u256 {
     if (shift > 255) return 0;
     const sh: u8 = @truncate(shift);
     return x >> sh;
+}
+
+fn expBySquaring(x: u256, n: u256) u256 {
+    if (n == 0) {
+        return 1;
+    }
+    if (n == 1) {
+        return x;
+    }
+    var next_x: u256 = x *% x;
+    var next_n = n;
+    if ((n & 1) == 1) {
+        next_x *%= x;
+        next_n -= 1;
+    }
+
+    return expBySquaring(next_x, n >> 1);
 }
 
 const Operation = fn (context: *Context) anyerror!void;
@@ -344,7 +187,12 @@ fn op_addmod(context: *Context) !void {
     const a = context.stack.pop_unsafe();
     const b = context.stack.pop_unsafe();
     const N = context.stack.peek().?;
-    const result = if (N.* == 0) 0 else @mod(a + b, N.*);
+    if (N.* == 0) {
+        return;
+    }
+    const addition: u512 = @as(u512, @intCast(a)) + @as(u512, @intCast(b));
+
+    const result: u256 = @truncate(@mod(addition, N.*));
     N.* = result;
 }
 
@@ -354,7 +202,11 @@ fn op_mulmod(context: *Context) !void {
     const a = context.stack.pop_unsafe();
     const b = context.stack.pop_unsafe();
     const N = context.stack.peek().?;
-    const result = if (N.* == 0) 0 else @mod(a * b, N.*);
+    if (N.* == 0) {
+        return;
+    }
+    const multiplication: u512 = @as(u512, @intCast(a)) * @as(u512, @intCast(b));
+    const result: u256 = @truncate(@mod(multiplication, N.*));
     N.* = result;
 }
 
@@ -363,7 +215,7 @@ fn op_exp(context: *Context) !void {
     try context.stack.ensureHasAtLeast(2);
     const a = context.stack.pop_unsafe();
     const exponent = context.stack.peek().?;
-    exponent.* = std.math.pow(u256, a, exponent.*);
+    exponent.* = expBySquaring(a, exponent.*);
 }
 
 fn op_signextend(context: *Context) !void {
@@ -508,7 +360,7 @@ fn op_keccak256(context: *Context) !void {
     const offset = context.stack.pop_unsafe();
     const length = context.stack.peek().?;
     const data = try context.memory.read(offset, length.*);
-    const dynamic_cost = 6 * @divFloor(length.* + 31, 32);
+    const dynamic_cost = 6 * @divTrunc(length.* + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
     length.* = Hash.keccak256(data);
 }
@@ -573,7 +425,7 @@ fn op_calldatacopy(context: *Context) !void {
     const dest_offset = context.stack.pop_unsafe();
     const offset = context.stack.pop_unsafe();
     const size = context.stack.pop_unsafe();
-    const dynamic_cost = 3 * @divFloor(size + 31, 32);
+    const dynamic_cost = 3 * @divTrunc(size + 31, 32);
     try context.spendGas(@as(u64, @truncate(dynamic_cost)));
     while (context.memory.buffer.items.len < dest_offset + size) {
         try context.memory.expand();
@@ -605,7 +457,7 @@ fn op_codecopy(context: *Context) !void {
     const dest_offset = context.stack.pop_unsafe();
     const offset = context.stack.pop_unsafe();
     const size = context.stack.pop_unsafe();
-    const dynamic_cost = 3 * @divFloor(size + 31, 32);
+    const dynamic_cost = 3 * @divTrunc(size + 31, 32);
     try context.spendGas(@as(u64, @truncate(dynamic_cost)));
     const address_state = try context.loadAddress(context.address);
     while (context.memory.buffer.items.len < dest_offset + size) {
@@ -647,7 +499,7 @@ fn op_extcodecopy(context: *Context) !void {
     const dest_offset = context.stack.pop_unsafe();
     const offset = context.stack.pop_unsafe();
     const size = context.stack.pop_unsafe();
-    const dynamic_cost = 3 * @divFloor(size + 31, 32);
+    const dynamic_cost = 3 * @divTrunc(size + 31, 32);
     const addr: u160 = @truncate(address);
     try context.spendGas(@as(u64, @truncate(dynamic_cost)));
     const address_state = try context.loadAddress(addr);
@@ -666,8 +518,8 @@ fn op_extcodecopy(context: *Context) !void {
 
 fn op_returndatasize(context: *Context) !void {
     try context.spendGas(2);
-    const has_return_data: bool = context.child != null and (context.child.?.status == .Return or context.child.?.status == .Revert);
-    const return_data_size: u256 = if (has_return_data) context.child.?.return_data.len else 0;
+    const has_return_data: bool = context.child != null and (context.child.?.status == .Return or context.child.?.status == .Revert) and context.child.?.return_data != null;
+    const return_data_size: u256 = if (has_return_data) context.child.?.return_data.?.len else 0;
     try context.stack.push(return_data_size);
 }
 
@@ -682,7 +534,7 @@ fn op_returndatacopy(context: *Context) !void {
     const dest_offset = context.stack.pop_unsafe();
     const offset = context.stack.pop_unsafe();
     const size = context.stack.pop_unsafe();
-    const dynamic_cost = 3 * @divFloor(size + 31, 32);
+    const dynamic_cost = 3 * @divTrunc(size + 31, 32);
     try context.spendGas(@as(u64, @truncate(dynamic_cost)));
     while (context.memory.buffer.items.len < dest_offset + size) {
         try context.memory.expand();
@@ -690,13 +542,13 @@ fn op_returndatacopy(context: *Context) !void {
     const dest_start: usize = @truncate(dest_offset);
     const u_size: usize = @truncate(size);
     @memset(context.memory.buffer.items[dest_start .. dest_start + u_size], 0);
-    const has_return_data: bool = context.child != null and (context.child.?.status == .Return or context.child.?.status == .Revert);
-    if (has_return_data and offset < context.child.?.return_data.len) {
-        const copiable_size: usize = @truncate(context.child.?.return_data.len - offset);
+    const has_return_data: bool = context.child != null and (context.child.?.status == .Return or context.child.?.status == .Revert) and context.child.?.return_data != null;
+    if (has_return_data and offset < context.child.?.return_data.?.len) {
+        const copiable_size: usize = @truncate(context.child.?.return_data.?.len - offset);
         const start: usize = @truncate(offset);
         @memcpy(
             context.memory.buffer.items[dest_start .. dest_start + copiable_size],
-            context.child.?.return_data[start .. start + copiable_size],
+            context.child.?.return_data.?[start .. start + copiable_size],
         );
     }
 }
@@ -1167,7 +1019,7 @@ fn op_log0(context: *Context) !void {
     const offset = context.stack.pop_unsafe();
     const size = context.stack.pop_unsafe();
     const data = try context.memory.read(offset, size);
-    const dynamic_cost = 8 * @divFloor(size + 31, 32);
+    const dynamic_cost = 8 * @divTrunc(size + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
     try context.emitLog(topics, data);
 }
@@ -1186,7 +1038,7 @@ fn op_log1(context: *Context) !void {
     const size = context.stack.pop_unsafe();
     topics[0] = context.stack.pop_unsafe();
     const data = try context.memory.read(offset, size);
-    const dynamic_cost = 8 * @divFloor(size + 31, 32);
+    const dynamic_cost = 8 * @divTrunc(size + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
     try context.emitLog(topics, data);
 }
@@ -1206,7 +1058,7 @@ fn op_log2(context: *Context) !void {
     topics[0] = context.stack.pop_unsafe();
     topics[1] = context.stack.pop_unsafe();
     const data = try context.memory.read(offset, size);
-    const dynamic_cost = 8 * @divFloor(size + 31, 32);
+    const dynamic_cost = 8 * @divTrunc(size + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
     try context.emitLog(topics, data);
 }
@@ -1227,7 +1079,7 @@ fn op_log3(context: *Context) !void {
     topics[1] = context.stack.pop_unsafe();
     topics[2] = context.stack.pop_unsafe();
     const data = try context.memory.read(offset, size);
-    const dynamic_cost = 8 * @divFloor(size + 31, 32);
+    const dynamic_cost = 8 * @divTrunc(size + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
     try context.emitLog(topics, data);
 }
@@ -1249,7 +1101,7 @@ fn op_log4(context: *Context) !void {
     topics[2] = context.stack.pop_unsafe();
     topics[3] = context.stack.pop_unsafe();
     const data = try context.memory.read(offset, size);
-    const dynamic_cost = 8 * @divFloor(size + 31, 32);
+    const dynamic_cost = 8 * @divTrunc(size + 31, 32);
     try context.spendGas(@truncate(dynamic_cost));
     try context.emitLog(topics, data);
 }
@@ -1274,14 +1126,18 @@ fn op_call(context: *Context) !void {
     const args_offset = context.stack.pop_unsafe();
     const args_size = context.stack.pop_unsafe();
     const ret_offset = context.stack.pop_unsafe();
-    const ret_size = context.stack.peek().?;
-    _ = gas;
-    _ = address;
-    _ = value;
-    _ = args_offset;
-    _ = args_size;
-    _ = ret_offset;
-    ret_size.* = 1;
+    const ret_length = context.stack.pop_unsafe();
+    const data = try context.memory.copy_zerofill(args_offset, args_size);
+    try context.memory.expandToOffset(ret_offset, ret_length);
+    context.call_result_offset = ret_offset;
+    context.call_result_length = ret_length;
+    try context.spawn(
+        @truncate(address),
+        value,
+        data,
+        @truncate(gas),
+        false
+    );
 }
 
 fn op_callcode(context: *Context) !void {
@@ -1312,7 +1168,7 @@ fn op_return(context: *Context) !void {
     try context.stack.ensureHasAtLeast(2);
     const offset = context.stack.pop_unsafe();
     const size = context.stack.pop_unsafe();
-    context.return_data = try context.memory.copy(offset, size);
+    context.return_data = try context.memory.expand_and_copy(offset, size);
     context.status = .Return;
 }
 
@@ -1372,7 +1228,7 @@ fn op_revert(context: *Context) !void {
     try context.stack.ensureHasAtLeast(2);
     const offset = context.stack.pop_unsafe();
     const size = context.stack.pop_unsafe();
-    context.return_data = try context.memory.copy(offset, size);
+    context.return_data = try context.memory.expand_and_copy(offset, size);
     context.status = .Revert;
 }
 
@@ -1646,3 +1502,416 @@ pub const runTable: [256]*const Operation = .{
     op_invalid,
     op_selfdestruct,
 };
+
+const t = std.testing;
+
+fn testTake3Return1(op: Operation, a: u256, b: u256, c: u256, n: u256, gas: u64) !void {
+    var context = Context.init(t.allocator, .{});
+    try context.stack.push(a);
+    try context.stack.push(b);
+    try context.stack.push(c);
+    const gas_start = context.gas;
+    try op(&context);
+    try t.expectEqual(n, context.stack.pop_unsafe());
+    try t.expectEqual(gas, gas_start - context.gas);
+}
+
+fn testTake2Return1(op: Operation, a: u256, b: u256, n: u256, gas: u64) !void {
+    var context = Context.init(t.allocator, .{});
+    try context.stack.push(a);
+    try context.stack.push(b);
+    const gas_start = context.gas;
+    try op(&context);
+    try t.expectEqual(n, context.stack.pop_unsafe());
+    try t.expectEqual(gas, gas_start - context.gas);
+}
+
+test "Interpreter: add small numbers" {
+    try testTake2Return1(op_add, 19, 23, 42, 3);
+}
+
+test "Interpreter: add big numbers" {
+    try testTake2Return1(
+        op_add,
+        0x384b0e6b92e5a98ecac63a19704f2f1354361cd3c9fb2e45553f0873436d7c99,
+        0x797258a83b079434804b3ced2ef589806a83df89abab30903b89b9612459b6e4,
+        0xb1bd6713cded3dc34b1177069f44b893beb9fc5d75a65ed590c8c1d467c7337d,
+        3,
+    );
+}
+
+test "Interpreter: add with overflow" {
+    try testTake2Return1(
+        op_add,
+        0x6aedb884af2f8847fb585fc13b7bddd13803229aea6dbeb80c201e4b11f8bb41,
+        0xb04bc6f9430946ca2ca34b416c72204fbbf67e17104efa55f6ac985a7568566b,
+        0x1b397f7df238cf1227fbab02a7edfe20f3f9a0b1fabcb90e02ccb6a5876111ac,
+        3,
+    );
+}
+
+test "Interpreter: mul small numbers" {
+    try testTake2Return1(
+        op_mul,
+        19,
+        23,
+        437,
+        5,
+    );
+}
+
+test "Interpreter: mul big numbers" {
+    try testTake2Return1(
+        op_mul,
+        0x43830e1f057acc81e04b11ff4189ca26,
+        0xcad3060011b012e67e5571e1c13155ab,
+        0x357d0fbe34e346bbaf90f91720c6f54f7da0114170f39cd2e056a46fde6ea562,
+        5,
+    );
+}
+
+test "Interpreter: mul with overflow" {
+    try testTake2Return1(
+        op_mul,
+        0xc76d60218e4d8bf77f7c34317d605b1c18faba2c93dcb885,
+        0x226e544fe816a9df22435008a96515f323ee63ff4078c9f6,
+        0x364b2e5031147110695b82e282b1f4494475bea1f21163f1a5d5a0012151bcce,
+        5,
+    );
+}
+
+test "Interpreter: sub small numbers" {
+    try testTake2Return1(
+        op_sub,
+        19,
+        23,
+        4,
+        3,
+    );
+}
+
+test "Interpreter: sub big numbers" {
+    try testTake2Return1(
+        op_sub,
+        0x384b0e6b92e5a98ecac63a19704f2f1354361cd3c9fb2e45553f0873436d7c99,
+        0x797258a83b079434804b3ced2ef589806a83df89abab30903b89b9612459b6e4,
+        0x41274a3ca821eaa5b58502d3bea65a6d164dc2b5e1b0024ae64ab0ede0ec3a4b,
+        3,
+    );
+}
+
+test "Interpreter: sub with underflow" {
+    try testTake2Return1(
+        op_sub,
+        0xb04bc6f9430946ca2ca34b416c72204fbbf67e17104efa55f6ac985a7568566b,
+        0x6aedb884af2f8847fb585fc13b7bddd13803229aea6dbeb80c201e4b11f8bb41,
+        0xbaa1f18b6c26417dceb5147fcf09bd817c0ca483da1ec462157385f09c9064d6,
+        3,
+    );
+}
+
+test "Interpreter: div by zero" {
+    try testTake2Return1(
+        op_div,
+        2,
+        0,
+        0,
+        5,
+    );
+}
+
+test "Interpreter: div small numbers" {
+    try testTake2Return1(
+        op_div,
+        3,
+        27,
+        9,
+        5,
+    );
+}
+
+test "Interpreter: div big numbers" {
+    try testTake2Return1(
+        op_div,
+        0x5e3bd29da9933a9d4763,
+        0x452f607a94dc1d59bf65a6a2c38abf6f267d9112b1f182d3f8c0158ac39f83f5,
+        0xbbf39fdcf785048ed3fc042be42adbb808b42d5ca3ca,
+        5,
+    );
+}
+
+test "Interpreter: div with bigger denominator" {
+    try testTake2Return1(
+        op_div,
+        0x452f607a94dc1d59bf65a6a2c38abf6f267d9112b1f182d3f8c0158ac39f83f5,
+        0x5e3bd29da9933a9d4763,
+        0,
+        5,
+    );
+}
+
+test "Interpreter: sdiv small numbers" {
+    try testTake2Return1(
+        op_div,
+        3,
+        27,
+        9,
+        5,
+    );
+}
+
+test "Interpreter: sdiv negative numerator" {
+    try testTake2Return1(
+        op_sdiv,
+        3,
+        @bitCast(@as(i256, -27)),
+        @bitCast(@as(i256, -9)),
+        5,
+    );
+}
+
+test "Interpreter: sdiv negative denominator" {
+    try testTake2Return1(
+        op_sdiv,
+        @bitCast(@as(i256, -3)),
+        27,
+        @bitCast(@as(i256, -9)),
+        5,
+    );
+}
+
+test "Interpreter: sdiv negative both terms" {
+    try testTake2Return1(
+        op_sdiv,
+        @bitCast(@as(i256, -3)),
+        @bitCast(@as(i256, -27)),
+        9,
+        5,
+    );
+}
+
+test "Interpreter: sdiv positive by zero" {
+    try testTake2Return1(
+        op_sdiv,
+        0,
+        27,
+        0,
+        5,
+    );
+}
+
+test "Interpreter: sdiv negative by zero" {
+    try testTake2Return1(
+        op_sdiv,
+        0,
+        @bitCast(@as(i256, -27)),
+        0,
+        5,
+    );
+}
+
+test "Interpreter: sdiv negative by bigger number" {
+    try testTake2Return1(
+        op_sdiv,
+        28,
+        @bitCast(@as(i256, -27)),
+        0,
+        5,
+    );
+}
+
+test "Interpreter: sdiv negative by positive equivalent" {
+    try testTake2Return1(
+        op_sdiv,
+        27,
+        @bitCast(@as(i256, -27)),
+        @bitCast(@as(i256, -1)),
+        5,
+    );
+}
+
+test "Interpreter: mod small numbers" {
+    try testTake2Return1(
+        op_mod,
+        4,
+        9,
+        1,
+        5,
+    );
+}
+
+test "Interpreter: mod bigger denominator" {
+    try testTake2Return1(
+        op_mod,
+        9,
+        4,
+        4,
+        5,
+    );
+}
+
+test "Interpreter: smod small numbers" {
+    try testTake2Return1(
+        op_smod,
+        4,
+        27,
+        3,
+        5,
+    );
+}
+
+test "Interpreter: smod negative numerator" {
+    try testTake2Return1(
+        op_smod,
+        4,
+        @bitCast(@as(i256, -27)),
+        @bitCast(@as(i256, -3)),
+        5,
+    );
+}
+
+test "Interpreter: smod negative denominator" {
+    try testTake2Return1(
+        op_smod,
+        @bitCast(@as(i256, -3)),
+        28,
+        1,
+        5,
+    );
+}
+
+test "Interpreter: smod negative both terms" {
+    try testTake2Return1(
+        op_smod,
+        @bitCast(@as(i256, -3)),
+        @bitCast(@as(i256, -29)),
+        @bitCast(@as(i256, -2)),
+        5,
+    );
+}
+
+test "Interpreter: smod positive by zero" {
+    try testTake2Return1(
+        op_smod,
+        0,
+        150,
+        0,
+        5,
+    );
+}
+
+test "Interpreter: smod negative by zero" {
+    try testTake2Return1(
+        op_smod,
+        0,
+        @bitCast(@as(i256, -27)),
+        0,
+        5,
+    );
+}
+
+test "Interpreter: smod negative by bigger number" {
+    try testTake2Return1(
+        op_smod,
+        28,
+        @bitCast(@as(i256, -27)),
+        @bitCast(@as(i256, -27)),
+        5,
+    );
+}
+
+test "Interpreter: smod negative by positive equivalent" {
+    try testTake2Return1(
+        op_smod,
+        27,
+        @bitCast(@as(i256, -27)),
+        0,
+        5,
+    );
+}
+
+test "Interpreter: addMod small numbers" {
+    try testTake3Return1(
+        op_addmod,
+        5,
+        9,
+        4,
+        3,
+        8,
+    );
+}
+
+test "Interpreter: addMod with modulo by zero" {
+    try testTake3Return1(
+        op_addmod,
+        0,
+        5,
+        4,
+        0,
+        8,
+    );
+}
+
+test "Interpreter: addMod with overflowing addition" {
+    try testTake3Return1(
+        op_addmod,
+        5,
+        @bitCast(@as(i256, -1)),
+        43,
+        3,
+        8,
+    );
+}
+
+test "Interpreter: mulMod small numbers" {
+    try testTake3Return1(
+        op_mulmod,
+        5,
+        9,
+        4,
+        1,
+        8,
+    );
+}
+
+test "Interpreter: mulMod with modulo by zero" {
+    try testTake3Return1(
+        op_mulmod,
+        0,
+        5,
+        4,
+        0,
+        8,
+    );
+}
+
+test "Interpreter: mulMod with overflowing multiplication" {
+    try testTake3Return1(
+        op_mulmod,
+        532,
+        @bitCast(@as(i256, -1)),
+        @bitCast(@as(i256, -3)),
+        195,
+        8,
+    );
+}
+
+test "Interpreter: exp small numbers" {
+    try testTake2Return1(
+        op_exp,
+        3,
+        42,
+        74088,
+        10,
+    );
+}
+
+// test "Interpreter: exp overflowing" {
+//     try testTake2Return1(
+//         op_exp,
+//         56,
+//         0x232e7c4ae3aecef0b2c4120ee596d90401f3589dc7ec55977e3b1f9d1f76fef3,
+//         0xeaf1aaaff6acc40ea5a9e957cf500ee1991f947bfc107b530f3cd7e5e6fb5ce1,
+//         10,
+//     );
+// }

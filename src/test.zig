@@ -18,6 +18,10 @@ test "EVM" {
     _ = @import("lib/evm.zig");
 }
 
-test "Utils" {
+test "Utils: Hex - RPCClient" {
     _ = @import("utils/test.zig");
+}
+
+test "Interpreter" {
+    _ = @import("lib/interpreter.zig");
 }

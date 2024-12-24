@@ -22,7 +22,7 @@ fn parseHexByte(high: u8, low: u8) u8 {
 pub fn parseStaticBuffer(input: []const u8, length: usize, buffer: []u8) void {
     const start: usize = if (input.len > 1 and input[1] == 'x') 2 else 0;
     const leading_zero = @mod(input.len, 2);
-    const byteLength = @divFloor(input.len - start + leading_zero, 2);
+    const byteLength = @divTrunc(input.len - start + leading_zero, 2);
     const leading_zero_bytes = length - byteLength;
 
     var i: usize = 0;
@@ -45,7 +45,7 @@ pub fn parseStaticBuffer(input: []const u8, length: usize, buffer: []u8) void {
 }
 
 pub fn parseUint(allocator: std.mem.Allocator, input: []const u8, T: type) !T {
-    const byteSize = @divFloor(@bitSizeOf(T), 8);
+    const byteSize = @divTrunc(@bitSizeOf(T), 8);
     const buffer: []u8 = try allocator.alloc(u8, byteSize);
     defer allocator.free(buffer);
     parseStaticBuffer(input, byteSize, buffer);
@@ -59,7 +59,7 @@ pub fn printBytes(bytes: []u8) void {
     }
 }
 
-test "Hex: Parse normal hex string without prefix" {
+test "Utils::Hex: Parse normal hex string without prefix" {
     const input = "36cc3b4eb1a6e7079cedee9f7487c8d968bfc9e30db863e533e93f6c7956bba9";
     var output: [32]u8 = undefined;
     parseStaticBuffer(input, 32, &output);
@@ -69,7 +69,7 @@ test "Hex: Parse normal hex string without prefix" {
     }
 }
 
-test "Hex: Parse normal hex string with prefix" {
+test "Utils::Hex: Parse normal hex string with prefix" {
     const input = "0x36cc3b4eb1a6e7079cedee9f7487c8d968bfc9e30db863e533e93f6c7956bba9";
     var output: [32]u8 = undefined;
     parseStaticBuffer(input, 32, &output);
@@ -79,9 +79,6 @@ test "Hex: Parse normal hex string with prefix" {
     }
 }
 
-test "Hex: Parse U256" {
-    const input = "0x36cc3b4eb1a6e7079cedee9f7487c8d968bfc9e30db863e533e93f6c7956bba9";
-    const output = try parseUint(std.testing.allocator, input, u256);
-
-    try std.testing.expectEqual(0x36cc3b4eb1a6e7079cedee9f7487c8d968bfc9e30db863e533e93f6c7956bba9, output);
+test "Utils::Hex: Parse U256" {
+    try std.testing.expectEqual(0x36cc3b4eb1a6e7079cedee9f7487c8d968bfc9e30db863e533e93f6c7956bba9, try parseUint(std.testing.allocator, "0x36cc3b4eb1a6e7079cedee9f7487c8d968bfc9e30db863e533e93f6c7956bba9", u256));
 }

@@ -17,12 +17,17 @@ const Hash = @import("../utils//hash.zig");
 
 fn printU256(n: u256) void {
     const bytes: [32]u8 = @bitCast(@byteSwap(n));
+    var output_started = false;
     std.debug.print(" 0x", .{});
     for (bytes) |byte| {
-        if (byte == 0) {
+        if (!output_started and byte == 0) {
             continue;
         }
         std.debug.print("{x:0>2}", .{byte});
+        output_started = true;
+    }
+    if (!output_started) {
+        std.debug.print("00", .{});
     }
 }
 
@@ -30,13 +35,15 @@ const ContextInitializer = struct {
     chain: Chain = Chain{},
     block: Block = Block{},
     rpc_client: ?*RPCClient = null,
-    state: ?ChainState,
+    state: ?ChainState = null,
     gas: u64 = 30_000_000,
     address: u160 = 0,
     caller: u160 = 0,
     origin: u160 = 0,
     call_value: u256 = 0,
     call_data: []const u8 = "",
+    call_result_offset: u32 = 0,
+    call_result_length: u32 = 0,
 };
 
 const Context = @This();
@@ -76,7 +83,7 @@ caller: u160,
 origin: u160,
 call_value: u256,
 call_data: []const u8,
-return_data: []u8 = undefined,
+return_data: ?[]u8 = null,
 status: ContextStatus = .Continue,
 stack: Stack = Stack{},
 parent: ?*Context = null,
@@ -86,6 +93,9 @@ program_counter: u32 = 0,
 memory_expansion_cost: u64 = 0,
 log_emitter: *const LogEmitter,
 address_accesslist: AddressAccesslist,
+call_gas: u64 = 0,
+call_result_offset: u256,
+call_result_length: u256,
 
 pub fn init(allocator: std.mem.Allocator, initializer: ContextInitializer) Context {
     return .{
@@ -103,11 +113,24 @@ pub fn init(allocator: std.mem.Allocator, initializer: ContextInitializer) Conte
         .memory = Memory.init(allocator),
         .log_emitter = debugLogEmitter,
         .address_accesslist = AddressAccesslist.init(allocator),
+        .call_result_offset = initializer.call_result_offset,
+        .call_result_length = initializer.call_result_length,
     };
 }
 
-pub fn deinit(self: *Context) void {
+pub fn soft_deinit(self: *Context) void {
+    if (self.child != null) {
+        if (self.child.?.return_data != null) {
+            self.child.?.allocator.free(self.child.?.return_data.?);
+        }
+        self.child.?.soft_deinit();
+        self.child = null;
+    }
     self.memory.deinit();
+}
+
+pub fn deinit(self: *Context) void {
+    self.soft_deinit();
     var it = self.address_accesslist.keyIterator();
     while (it.next()) |address_ptr| {
         if (self.state.get(address_ptr.*)) |address_state| {
@@ -118,8 +141,8 @@ pub fn deinit(self: *Context) void {
     self.state.deinit();
 }
 
-pub fn spawn(self: *Context, address: u160, value: u256, data: []u8, gas: u64, is_delegate: bool) !*Context {
-    try self.spendGas(gas);
+pub fn spawn(self: *Context, address: u160, value: u256, data: []u8, gas: u64, is_delegate: bool) !void {
+    self.call_gas = gas;
     var sub_context = Context.init(self.allocator, .{
         .block = self.block,
         .state = self.state,
@@ -134,7 +157,6 @@ pub fn spawn(self: *Context, address: u160, value: u256, data: []u8, gas: u64, i
     sub_context.parent = self;
     self.child = &sub_context;
     self.status = .Spawn;
-    return &sub_context;
 }
 
 pub fn loadCode(self: *Context) void {
@@ -154,7 +176,9 @@ pub fn spendCalldataGas(self: *Context) !void {
 }
 
 pub fn startTransaction(self: *Context) !void {
-    try self.spendGas(21000);
+    if (self.parent == null) {
+        try self.spendGas(21000);
+    }
 }
 
 pub fn runNextOperation(self: *Context) !void {
@@ -187,7 +211,11 @@ pub fn runNextOperation(self: *Context) !void {
         if (opcode.isPush()) {
             printU256(self.stack.peek().?.*);
         }
-        std.debug.print(" ({d})\n", .{gas_used});
+        if (comptime config.gas) {
+            std.debug.print(" ({d})\n", .{gas_used});
+        } else {
+            std.debug.print("\n", .{});
+        }
     }
     self.advanceProgramCounter(1);
 }
@@ -322,15 +350,15 @@ test "Context: Spawn" {
         .call_data = "",
     });
     defer context.deinit();
-    const sub_context = try context.spawn(1, 0, "", 10, false);
-    try std.testing.expectEqual(context.block.number, sub_context.block.number);
-    try std.testing.expectEqual(context.block.base_fee, sub_context.block.base_fee);
-    try std.testing.expectEqual(context.block.timestamp, sub_context.block.timestamp);
-    try std.testing.expectEqual(context.chain, sub_context.chain);
-    try std.testing.expectEqual(context.state, sub_context.state);
-    try std.testing.expectEqual(context.address, sub_context.caller);
+    try context.spawn(1, 0, "", 10, false);
+    try std.testing.expectEqual(context.block.number, context.child.?.block.number);
+    try std.testing.expectEqual(context.block.base_fee, context.child.?.block.base_fee);
+    try std.testing.expectEqual(context.block.timestamp, context.child.?.block.timestamp);
+    try std.testing.expectEqual(context.chain, context.child.?.chain);
+    try std.testing.expectEqual(context.state, context.child.?.state);
+    try std.testing.expectEqual(context.address, context.child.?.caller);
     try std.testing.expectEqual(ContextStatus.Spawn, context.status);
-    try std.testing.expectEqual(ContextStatus.Continue, sub_context.status);
+    try std.testing.expectEqual(ContextStatus.Continue, context.child.?.status);
 }
 
 test "Context: Gas" {

@@ -1,11 +1,13 @@
 const std = @import("std");
 const snailtracer = @import("./snailtracer.zig");
+const spawn = @import("./spawn.zig");
 const eq = std.mem.eql;
 
 const ExampleProgram = *const fn () anyerror!void;
 
 fn getExample(example_name: []const u8) ?ExampleProgram {
     if (eq(u8, "snailtracer", example_name)) return snailtracer.main;
+    if (eq(u8, "spawn", example_name)) return spawn.main;
     return null;
 }
 

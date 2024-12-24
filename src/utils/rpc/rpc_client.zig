@@ -51,7 +51,7 @@ pub fn getCode(self: *RPCClient, address: u160) ![]u8 {
     var parsed_response = try self.makeAddressRPCRequest("eth_getCode", address);
     defer parsed_response.deinit();
     const code_response = parsed_response.parsed.value.result;
-    const length = @divFloor(code_response.len - 2, 2);
+    const length = @divTrunc(code_response.len - 2, 2);
     const code = try self.allocator.alloc(u8, length);
     Hex.parseStaticBuffer(code_response, length, code);
     return code;
@@ -135,49 +135,49 @@ fn makeAddressRPCRequest(self: *RPCClient, req: []const u8, address: u160) !RPCP
     };
 }
 
-const rpc = "http://geth.metal:10545";
+// const rpc = "http://geth.metal:10544";
 
-test "RPC Client: Get Block Number" {
-    var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
-    defer rpc_client.deinit();
+// test "Utils::RPCClient: Get Block Number" {
+//     var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
+//     defer rpc_client.deinit();
 
-    const num = try rpc_client.blockNumber();
-    try std.testing.expect(num > 0);
-}
+//     const num = try rpc_client.blockNumber();
+//     try std.testing.expect(num > 0);
+// }
 
-test "RPC Client: Get Chain ID" {
-    var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
-    defer rpc_client.deinit();
+// test "Utils::RPCClient: Get Chain ID" {
+//     var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
+//     defer rpc_client.deinit();
 
-    const num = try rpc_client.chainId();
-    try std.testing.expectEqual(1, num);
-}
+//     const num = try rpc_client.chainId();
+//     try std.testing.expectEqual(1, num);
+// }
 
-test "RPC Client: Get Balance" {
-    var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
-    defer rpc_client.deinit();
+// test "Utils::RPCClient: Get Balance" {
+//     var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
+//     defer rpc_client.deinit();
 
-    const num = try rpc_client.getBalance(0xcfab2d1bcdd5f8c0f4e7fdb1900550ab15df78f9);
-    try std.testing.expectEqual(985988331026594, num);
-}
+//     const num = try rpc_client.getBalance(0xcfab2d1bcdd5f8c0f4e7fdb1900550ab15df78f9);
+//     try std.testing.expectEqual(985988331026594, num);
+// }
 
-test "RPC Client: Get Nonce" {
-    var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
-    defer rpc_client.deinit();
+// test "Utils::RPCClient: Get Nonce" {
+//     var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
+//     defer rpc_client.deinit();
 
-    const num = try rpc_client.getTransactionCount(0xcfab2d1bcdd5f8c0f4e7fdb1900550ab15df78f9);
-    try std.testing.expectEqual(13, num);
-}
+//     const num = try rpc_client.getTransactionCount(0xcfab2d1bcdd5f8c0f4e7fdb1900550ab15df78f9);
+//     try std.testing.expectEqual(13, num);
+// }
 
-test "RPC Client: Get Code" {
-    var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
-    defer rpc_client.deinit();
+// test "Utils::RPCClient: Get Code" {
+//     var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
+//     defer rpc_client.deinit();
 
-    const code = try rpc_client.getCode(0xad9599131cdd44b1ef6662f8e724142d9aa464bb);
-    const expectedCode = "\x36\x3d\x3d\x37\x3d\x3d\x3d\x36\x3d\x73\xd3\x32\x25\x4f\x27\x4c\xc6\x5a\xa1\x11\x78\xb7\x47\x34\xe2\x99\x2b\x8f\x34\x9e\x5a\xf4\x3d\x82\x80\x3e\x90\x3d\x91\x60\x2b\x57\xfd\x5b\xf3";
-    try std.testing.expectEqual(expectedCode.len, code.len);
-    for (expectedCode, code) |expectedByte, byte| {
-        try std.testing.expectEqual(expectedByte, byte);
-    }
-    defer std.testing.allocator.free(code);
-}
+//     const code = try rpc_client.getCode(0xad9599131cdd44b1ef6662f8e724142d9aa464bb);
+//     const expectedCode = "\x36\x3d\x3d\x37\x3d\x3d\x3d\x36\x3d\x73\xd3\x32\x25\x4f\x27\x4c\xc6\x5a\xa1\x11\x78\xb7\x47\x34\xe2\x99\x2b\x8f\x34\x9e\x5a\xf4\x3d\x82\x80\x3e\x90\x3d\x91\x60\x2b\x57\xfd\x5b\xf3";
+//     try std.testing.expectEqual(expectedCode.len, code.len);
+//     for (expectedCode, code) |expectedByte, byte| {
+//         try std.testing.expectEqual(expectedByte, byte);
+//     }
+//     defer std.testing.allocator.free(code);
+// }

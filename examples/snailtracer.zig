@@ -38,5 +38,5 @@ pub fn main() !void {
         .call_data = calldata,
         .gas = 3_000_000_000,
     });
-    defer allocator.free(return_data);
+    defer allocator.free(return_data.?);
 }

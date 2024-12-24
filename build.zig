@@ -7,10 +7,12 @@ pub fn build(b: *std.Build) void {
     });
 
     const trace = b.option(bool, "trace", "Enable tracing") orelse false;
+    const gas = b.option(bool, "gas", "Enable gas output (only if tracing is enabled)") orelse false;
     const debug = b.option(bool, "debug", "Debug opcodes") orelse false;
     const bench = b.option(bool, "bench", "Benchmark mode (print time)") orelse false;
     const options = b.addOptions();
     options.addOption(bool, "trace", trace);
+    options.addOption(bool, "gas", gas);
     options.addOption(bool, "debug", debug);
     options.addOption(bool, "bench", bench);
 
@@ -22,11 +24,15 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(lib);
 
-    const lib_unit_tests = b.addTest(.{
+    var testOptions: std.Build.TestOptions = .{
         .root_source_file = b.path("src/test.zig"),
         .target = target,
         .optimize = optimize,
-    });
+    };
+    if (b.args) |args| {
+        testOptions.filters = args;
+    }
+    const lib_unit_tests = b.addTest(testOptions);
 
     lib_unit_tests.root_module.addOptions("config", options);
 
@@ -39,7 +45,7 @@ pub fn build(b: *std.Build) void {
     const examples_step = b.step("example", "Run example");
 
     const example_exe = b.addExecutable(.{
-        .name = "snailtracer example",
+        .name = "run example",
         .root_source_file = b.path("examples/example.zig"),
         .target = target,
         .optimize = optimize,
@@ -53,7 +59,7 @@ pub fn build(b: *std.Build) void {
     example_exe.root_module.addImport("zee", zee_module);
 
     const example_run = b.addRunArtifact(example_exe);
-    if (b.args) | args | {
+    if (b.args) |args| {
         example_run.addArgs(args);
     }
     examples_step.dependOn(&example_run.step);

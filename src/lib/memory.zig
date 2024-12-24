@@ -28,42 +28,66 @@ pub fn expand(self: *Memory) !void {
     }
 }
 
-pub fn expandToOffset(self: *Memory, offset: u256, increment: u8) !void {
+pub fn expandToOffset(self: *Memory, offset: u256, increment: u256) !void {
     while (self.buffer.items.len < offset + increment) {
         try self.expand();
     }
 }
 
 pub fn store(self: *Memory, offset: u256, n: u256) !void {
-    const ofs: usize = @truncate(offset);
+    const start: usize = @truncate(offset);
     try expandToOffset(self, offset, 32);
     const bytes: [32]u8 = @bitCast(@byteSwap(n));
-    try self.buffer.replaceRange(ofs, 32, &bytes);
+    try self.buffer.replaceRange(start, 32, &bytes);
 }
 
 pub fn storeByte(self: *Memory, offset: u256, n: u8) !void {
-    const ofs: usize = @truncate(offset);
+    const start: usize = @truncate(offset);
     try expandToOffset(self, offset, 1);
     const bytes: [1]u8 = .{n};
-    try self.buffer.replaceRange(ofs, 1, &bytes);
+    try self.buffer.replaceRange(start, 1, &bytes);
 }
 
 pub fn load(self: *Memory, offset: u256) !u256 {
-    const ofs: usize = @truncate(offset);
+    const start: usize = @truncate(offset);
     try expandToOffset(self, offset, 32);
-    const word: *[32]u8 = @ptrCast(self.buffer.items[ofs .. ofs + 32]);
+    const word: *[32]u8 = @ptrCast(self.buffer.items[start .. start + 32]);
     const output: u256 = @bitCast(word.*);
     return @byteSwap(output);
 }
 
-pub fn copy(self: *Memory, offset: u256, len: u256) ![]u8 {
+pub fn apply(self: *Memory, data: ?[]u8, offset: u256, len: u256) !void {
+    try self.expandToOffset(offset, len);
+    const start: usize = @truncate(offset);
+    const length: usize = @truncate(len);
+    const copy_length = if (data == null) 0 else @min(len, data.?.len);
+    if (copy_length > 0) {
+        @memcpy(self.buffer.items[start..start + copy_length], data.?[0..copy_length]);
+    }
+    if (len > copy_length) {
+        @memset(self.buffer.items[start + copy_length..start + length], 0);
+    }
+}
+
+pub fn copy_zerofill(self: *Memory, offset: u256, len: u256) ![]u8 {
+    const start: usize = @truncate(offset);
+    const length: usize = @truncate(len);
+    const data = try self.allocator.alloc(u8, length);
+    const current_size = self.buffer.items.len;
+    const copy_length = if (start >= current_size) 0 else @min(current_size - offset, length);
+    @memcpy(data[0..copy_length], self.buffer.items[start..start + copy_length]);
+    @memset(data[copy_length..], 0);
+    return data;
+}
+
+pub fn expand_and_copy(self: *Memory, offset: u256, len: u256) ![]u8 {
     while (self.buffer.items.len < offset + len) {
         try self.expand();
     }
+    const start: usize = @truncate(offset);
     const length: usize = @truncate(len);
-    const ofs: usize = @truncate(offset);
     const data = try self.allocator.alloc(u8, length);
-    @memcpy(data, self.buffer.items[ofs .. ofs + length]);
+    @memcpy(data, self.buffer.items[start .. start + length]);
     return data;
 }
 
@@ -72,15 +96,15 @@ pub fn read(self: *Memory, offset: u256, len: u256) ![]u8 {
         try self.expand();
     }
     const length: usize = @truncate(len);
-    const ofs: usize = @truncate(offset);
-    return self.buffer.items[ofs .. ofs + length];
+    const start: usize = @truncate(offset);
+    return self.buffer.items[start .. start + length];
 }
 
 pub fn cost(self: *Memory) u64 {
     const len = self.buffer.items.len;
-    const words = @divFloor(len + 31, 32);
+    const words = @divTrunc(len + 31, 32);
 
-    return (@divFloor(std.math.pow(u64, words, 2), 512) + (3 * words));
+    return (@divTrunc(std.math.pow(u64, words, 2), 512) + (3 * words));
 }
 
 pub fn debugPrint(self: *Memory) !void {

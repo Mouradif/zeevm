@@ -1,7 +1,7 @@
-test "Hex" {
+test "Utils::Hex" {
     _ = @import("hex.zig");
 }
 
-test "RPC Client" {
+test "Utils::RPCClient" {
     _ = @import("rpc/rpc_client.zig");
 }
