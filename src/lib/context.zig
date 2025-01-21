@@ -7,6 +7,7 @@ const Chain = @import("../types/chain.zig");
 const ContextError = @import("../errors/context_error.zig").ContextError;
 const ChainState = @import("../types/chain_state.zig").ChainState;
 const OpCode = @import("../types/opcode.zig").OpCode;
+const AddressAccesslist = @import("../types/address_accesslist.zig").AddressAccesslist;
 
 const AddressState = @import("address_state.zig");
 const Stack = @import("stack.zig");
@@ -14,6 +15,8 @@ const Memory = @import("memory.zig");
 const Interpreter = @import("interpreter.zig");
 const RPCClient = @import("../utils/rpc/rpc_client.zig");
 const Hash = @import("../utils//hash.zig");
+
+const debugLogEmitter = @import("../utils/log/debug_log_emitter.zig").debugLogEmitter;
 
 fn printU256(n: u256) void {
     const bytes: [32]u8 = @bitCast(@byteSwap(n));
@@ -46,22 +49,22 @@ const ContextInitializer = struct {
     call_result_length: u32 = 0,
 };
 
+const ContextUpdater = struct {
+    chain: ?Chain = null,
+    block: ?Block = null,
+    rpc_client: ?*RPCClient = null,
+    state: ?ChainState = null,
+    gas: ?u64 = null,
+    address: ?u160 = null,
+    caller: ?u160 = null,
+    origin: ?u160 = null,
+    call_value: ?u256 = null,
+    call_data: ?[]const u8 = null,
+};
+
 const Context = @This();
-const AddressAccesslist = std.AutoHashMap(u160, void);
 
 const LogEmitter = fn (topics: []u256, data: []u8) anyerror!void;
-
-fn debugLogEmitter(topics: []u256, data: []u8) anyerror!void {
-    std.debug.print("LOG(\n", .{});
-    for (topics) |topic| {
-        std.debug.print("\t0x{x:0>64},\n", .{topic});
-    }
-    std.debug.print(") -> 0x", .{});
-    for (data) |byte| {
-        std.debug.print("{x:0>2}", .{byte});
-    }
-    std.debug.print("\n", .{});
-}
 
 fn calldataCost(calldata: []const u8) u64 {
     var cost: u64 = 0;
@@ -141,6 +144,39 @@ pub fn deinit(self: *Context) void {
     self.state.deinit();
 }
 
+pub fn update(self: *Context, update_data: ContextUpdater) void {
+    if (update_data.chain) | chain | {
+        self.chain = chain;
+    }
+    if (update_data.block) | block | {
+        self.block = block;
+    }
+    if (update_data.rpc_client) | rpc_client | {
+        self.rpc_client = rpc_client;
+    }
+    if (update_data.state) | state | {
+        self.state = state;
+    }
+    if (update_data.gas) | gas | {
+        self.gas = gas;
+    }
+    if (update_data.address) | address | {
+        self.address = address;
+    }
+    if (update_data.caller) | caller | {
+        self.caller = caller;
+    }
+    if (update_data.origin) | origin | {
+        self.origin = origin;
+    }
+    if (update_data.call_value) | call_value | {
+        self.call_value = call_value;
+    }
+    if (update_data.call_data) | call_data | {
+        self.call_data = call_data;
+    }
+}
+
 pub fn spawn(self: *Context, address: u160, value: u256, data: []u8, gas: u64, is_delegate: bool) !void {
     self.call_gas = gas;
     var sub_context = Context.init(self.allocator, .{
@@ -191,6 +227,7 @@ pub fn runNextOperation(self: *Context) !void {
     }
 
     if (self.program_counter >= self.code.len) {
+        std.debug.print("No operation found at PC {d}\n", .{self.program_counter});
         self.status = if (self.program_counter == 0) .Stop else .Panic;
         return;
     }

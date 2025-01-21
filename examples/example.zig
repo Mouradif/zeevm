@@ -1,13 +1,13 @@
 const std = @import("std");
 const snailtracer = @import("./snailtracer.zig");
-const spawn = @import("./spawn.zig");
+const replay = @import("./replay.zig");
 const eq = std.mem.eql;
 
 const ExampleProgram = *const fn () anyerror!void;
 
 fn getExample(example_name: []const u8) ?ExampleProgram {
     if (eq(u8, "snailtracer", example_name)) return snailtracer.main;
-    if (eq(u8, "spawn", example_name)) return spawn.main;
+    if (eq(u8, "replay", example_name)) return replay.main;
     return null;
 }
 
@@ -30,6 +30,7 @@ pub fn main() !void {
     } else {
         std.debug.print("Usage: zig build example -- <example-name>\n\n", .{});
         std.debug.print("Available examples:\n", .{});
-        std.debug.print("  - {s}\n\n", .{"snailtracer"});
+        std.debug.print("  - {s}\n", .{"snailtracer"});
+        std.debug.print("  - {s}\n\n", .{"replay"});
     }
 }

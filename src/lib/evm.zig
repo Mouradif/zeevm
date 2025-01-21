@@ -6,9 +6,12 @@ const Chain = @import("../types/chain.zig");
 const Hex = @import("../utils/hex.zig");
 const ChainState = @import("../types/chain_state.zig").ChainState;
 const ContextStatus = @import("../types/context_status.zig").ContextStatus;
+const AddressAccesslist = @import("../types/address_accesslist.zig").AddressAccesslist;
+const debugLogEmitter = @import("../utils/log/debug_log_emitter.zig").debugLogEmitter;
 
 const Context = @import("context.zig");
 const AddressState = @import("address_state.zig");
+const Memory = @import("memory.zig");
 const RPCClient = @import("../utils/rpc/rpc_client.zig");
 
 const EVM = @This();
@@ -20,6 +23,7 @@ const EVMInitializer = struct {
 const EVMForkInitializer = struct {
     fork_url: []const u8,
     fork_block: u64 = 0,
+    context: *Context,
 };
 
 const EVMRunParams = struct {
@@ -48,22 +52,18 @@ pub fn init(allocator: std.mem.Allocator, initializer: EVMInitializer) EVM {
 
 pub fn fork_init(allocator: std.mem.Allocator, initializer: EVMForkInitializer) !EVM {
     var client = try RPCClient.init(allocator, initializer.fork_url);
-    const block = try allocator.create(Block);
-    block.number = if (initializer.block_number == 0) try client.blockNumber() else initializer.block_number;
-    const chain = try allocator.create(Chain);
+    var block = Block{};
+    block.number = if (initializer.fork_block == 0) try client.blockNumber() else initializer.fork_block;
+    var chain = Chain{};
     chain.id = try client.chainId();
-    const chain_state = ChainState.init(allocator);
-    const context = Context.init(allocator, .{
-        .block = block,
+    initializer.context.update(.{
         .chain = chain,
+        .block= block,
         .rpc_client = &client,
-        .state = chain_state,
-        .gas = 0,
-        .call_data = "",
     });
     return .{
         .allocator = allocator,
-        .context = context,
+        .context = initializer.context,
         .rpc_client = client,
         .fork_url = initializer.fork_url,
         .fork_block = block.number,
@@ -80,6 +80,7 @@ pub fn initForkedContext(self: *EVM) !void {
     var client = self.rpc_client.?;
     const address = self.context.address;
     const code = try client.getCode(address);
+    std.debug.print("Found code for address {x}\n\n{}\n\n", .{address, std.fmt.fmtSliceHexLower(code)});
     if (self.context.state.get(address)) |address_state| {
         address_state.code = code;
         return;
