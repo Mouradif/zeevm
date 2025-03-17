@@ -80,7 +80,6 @@ pub fn initForkedContext(self: *EVM) !void {
     var client = self.rpc_client.?;
     const address = self.context.address;
     const code = try client.getCode(address);
-    std.debug.print("Found code for address {x}\n\n{}\n\n", .{address, std.fmt.fmtSliceHexLower(code)});
     if (self.context.state.get(address)) |address_state| {
         address_state.code = code;
         return;

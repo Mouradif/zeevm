@@ -227,7 +227,6 @@ pub fn runNextOperation(self: *Context) !void {
     }
 
     if (self.program_counter >= self.code.len) {
-        std.debug.print("No operation found at PC {d}\n", .{self.program_counter});
         self.status = if (self.program_counter == 0) .Stop else .Panic;
         return;
     }
@@ -350,6 +349,10 @@ pub fn swap(self: *Context, n: u5) !void {
 }
 
 pub fn ensureValidJumpDestination(self: *Context) !void {
+    if (self.program_counter >= self.code.len) {
+        self.status = .Panic;
+        return error.InvalidJumpDestination;
+    }
     const opbyte = self.code[self.program_counter];
     const opcode = OpCode.from(opbyte);
     if (opcode != .JUMPDEST) {

@@ -3,7 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{
-        .preferred_optimize_mode = .ReleaseFast,
+        .preferred_optimize_mode = .Debug,
     });
 
     const trace = b.option(bool, "trace", "Enable tracing") orelse false;
@@ -62,5 +62,6 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| {
         example_run.addArgs(args);
     }
+    b.installArtifact(example_exe);
     examples_step.dependOn(&example_run.step);
 }
