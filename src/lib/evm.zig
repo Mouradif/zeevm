@@ -111,7 +111,7 @@ pub fn run(self: *EVM, run_params: EVMRunParams) !?[]u8 {
     const address_state = self.context.state.get(self.context.address).?;
     address_state.is_warm = true;
     try self.context.address_accesslist.put(self.context.address, {});
-    var timer: anyerror!std.time.Timer = undefined;
+    var timer: std.time.Timer = undefined;
 
     if (config.bench) {
         timer = try std.time.Timer.start();

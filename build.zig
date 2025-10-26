@@ -3,7 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{
-        .preferred_optimize_mode = .Debug,
+        .preferred_optimize_mode = .ReleaseFast,
     });
 
     const trace = b.option(bool, "trace", "Enable tracing") orelse false;
@@ -16,18 +16,25 @@ pub fn build(b: *std.Build) void {
     options.addOption(bool, "debug", debug);
     options.addOption(bool, "bench", bench);
 
-    const lib = b.addStaticLibrary(.{
-        .name = "zee",
+    const lib_mod = b.addModule("zee", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
     });
+
+    const lib = b.addLibrary(.{
+        .linkage = .static,
+        .name = "zee",
+        .root_module = lib_mod,
+    });
     b.installArtifact(lib);
 
     var testOptions: std.Build.TestOptions = .{
-        .root_source_file = b.path("src/test.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/test.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     };
     if (b.args) |args| {
         testOptions.filters = args;
@@ -45,10 +52,12 @@ pub fn build(b: *std.Build) void {
     const examples_step = b.step("example", "Run example");
 
     const example_exe = b.addExecutable(.{
-        .name = "run example",
-        .root_source_file = b.path("examples/example.zig"),
-        .target = target,
-        .optimize = optimize,
+        .name = "example",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/example.zig"),
+            .target = target,
+            .optimize = optimize,
+        })
     });
 
     const zee_module = b.addModule("zee", .{

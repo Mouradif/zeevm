@@ -1,3 +1,3 @@
 const std = @import("std");
 
-pub const ByteArray = std.ArrayList(u8);
+pub const ByteArray = std.array_list.Managed(u8);

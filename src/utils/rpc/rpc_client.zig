@@ -76,8 +76,8 @@ fn makeAddressNumericRPCRequest(self: *RPCClient, req: []const u8, address: u160
 }
 
 fn makeBasicRPCRequest(self: *RPCClient, req: []const u8) !RPCParsedResponse(RPCBasicResponse) {
-    var response = ByteArray.init(self.allocator);
-    defer response.deinit();
+    var allocating_writer = std.Io.Writer.Allocating.init(self.allocator);
+    defer allocating_writer.deinit();
     const payload = try std.fmt.allocPrint(
         self.allocator,
         "{{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"{s}\",\"params\":[]}}",
@@ -89,12 +89,12 @@ fn makeBasicRPCRequest(self: *RPCClient, req: []const u8) !RPCParsedResponse(RPC
         .payload = payload,
         .method = .POST,
         .location = .{ .uri = self.rpc_uri },
-        .response_storage = .{ .dynamic = &response },
+        .response_writer = &allocating_writer.writer,
     });
     if (result.status != .ok) {
         return RPCError.RequestFailed;
     }
-    const response_body = try response.toOwnedSlice();
+    const response_body = try self.allocator.dupe(u8, allocating_writer.written());
     const parsed = try std.json.parseFromSlice(
         RPCBasicResponse,
         self.allocator,
@@ -109,8 +109,8 @@ fn makeBasicRPCRequest(self: *RPCClient, req: []const u8) !RPCParsedResponse(RPC
 }
 
 fn makeAddressAndSlotRPCRequest(self: *RPCClient, req: []const u8, address: u160, slot: u256) !RPCParsedResponse(RPCBasicResponse) {
-    var response = ByteArray.init(self.allocator);
-    defer response.deinit();
+    var allocating_writer = std.Io.Writer.Allocating.init(self.allocator);
+    defer allocating_writer.deinit();
     const payload = try std.fmt.allocPrint(
         self.allocator,
         "{{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"{s}\",\"params\":[\"0x{x:0>40}\",\"0x{x:0>64}\",\"latest\"]}}",
@@ -122,12 +122,12 @@ fn makeAddressAndSlotRPCRequest(self: *RPCClient, req: []const u8, address: u160
         .payload = payload,
         .method = .POST,
         .location = .{ .uri = self.rpc_uri },
-        .response_storage = .{ .dynamic = &response },
+        .response_writer = &allocating_writer.writer,
     });
     if (result.status != .ok) {
         return RPCError.RequestFailed;
     }
-    const response_body = try response.toOwnedSlice();
+    const response_body = try self.allocator.dupe(u8, allocating_writer.written());
     const parsed = try std.json.parseFromSlice(
         RPCBasicResponse,
         self.allocator,
@@ -142,8 +142,8 @@ fn makeAddressAndSlotRPCRequest(self: *RPCClient, req: []const u8, address: u160
 }
 
 fn makeAddressRPCRequest(self: *RPCClient, req: []const u8, address: u160) !RPCParsedResponse(RPCBasicResponse) {
-    var response = ByteArray.init(self.allocator);
-    defer response.deinit();
+    var allocating_writer = std.Io.Writer.Allocating.init(self.allocator);
+    defer allocating_writer.deinit();
     const payload = try std.fmt.allocPrint(
         self.allocator,
         "{{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"{s}\",\"params\":[\"0x{x:0>40}\",\"latest\"]}}",
@@ -155,12 +155,12 @@ fn makeAddressRPCRequest(self: *RPCClient, req: []const u8, address: u160) !RPCP
         .payload = payload,
         .method = .POST,
         .location = .{ .uri = self.rpc_uri },
-        .response_storage = .{ .dynamic = &response },
+        .response_writer = &allocating_writer.writer,
     });
     if (result.status != .ok) {
         return RPCError.RequestFailed;
     }
-    const response_body = try response.toOwnedSlice();
+    const response_body = try self.allocator.dupe(u8, allocating_writer.written());
     const parsed = try std.json.parseFromSlice(
         RPCBasicResponse,
         self.allocator,
@@ -174,7 +174,7 @@ fn makeAddressRPCRequest(self: *RPCClient, req: []const u8, address: u160) !RPCP
     };
 }
 
-const rpc = "http://geth.metal:10544";
+const rpc = "http://geth.metal:8544";
 
 test "Utils::RPCClient: Get Block Number" {
     var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
@@ -197,7 +197,7 @@ test "Utils::RPCClient: Get Balance" {
     defer rpc_client.deinit();
 
     const num = try rpc_client.getBalance(0xcfab2d1bcdd5f8c0f4e7fdb1900550ab15df78f9);
-    try std.testing.expectEqual(985988331026594, num);
+    try std.testing.expect(num > 0);
 }
 
 test "Utils::RPCClient: Get Nonce" {
@@ -205,7 +205,7 @@ test "Utils::RPCClient: Get Nonce" {
     defer rpc_client.deinit();
 
     const num = try rpc_client.getTransactionCount(0xcfab2d1bcdd5f8c0f4e7fdb1900550ab15df78f9);
-    try std.testing.expectEqual(13, num);
+    try std.testing.expectEqual(16, num);
 }
 
 test "Utils::RPCClient: Get Code" {

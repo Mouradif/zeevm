@@ -1,18 +1,20 @@
 const std = @import("std");
 
+const StringList = std.array_list.Managed([]u8);
+
 allocator: std.mem.Allocator,
-entries: std.ArrayList([]u8),
+entries: StringList,
 
 const Trace = @This();
 
 pub fn init(allocator: std.mem.Allocator) Trace {
     return .{
         .allocator = allocator,
-        .entries = std.ArrayList([]u8).init(allocator),
+        .entries = StringList.init(allocator),
     };
 }
 
-pub fn deinit(self: *Trace) {
+pub fn deinit(self: *Trace) void {
     for (self.entries.items) |entry| {
         self.allocator.free(entry);
     }

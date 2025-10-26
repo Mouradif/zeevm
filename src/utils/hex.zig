@@ -57,6 +57,7 @@ pub fn printBytes(bytes: []u8) void {
     for (bytes) |byte| {
         std.debug.print("{x:0>2}", .{byte});
     }
+    std.debug.print("\n", .{});
 }
 
 test "Utils::Hex: Parse normal hex string without prefix" {
