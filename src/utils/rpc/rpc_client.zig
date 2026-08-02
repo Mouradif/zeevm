@@ -11,10 +11,10 @@ allocator: std.mem.Allocator,
 http_client: std.http.Client,
 rpc_uri: std.Uri,
 
-pub fn init(allocator: std.mem.Allocator, url: []const u8) !RPCClient {
+pub fn init(allocator: std.mem.Allocator, io: std.Io, url: []const u8) !RPCClient {
     return .{
         .allocator = allocator,
-        .http_client = std.http.Client{ .allocator = allocator },
+        .http_client = std.http.Client{ .allocator = allocator, .io = io },
         .rpc_uri = try std.Uri.parse(url),
     };
 }
@@ -174,10 +174,10 @@ fn makeAddressRPCRequest(self: *RPCClient, req: []const u8, address: u160) !RPCP
     };
 }
 
-const rpc = "http://geth.metal:8544";
+const rpc = "https://rpc.flashbots.net/fast";
 
 test "Utils::RPCClient: Get Block Number" {
-    var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
+    var rpc_client = try RPCClient.init(std.testing.allocator, std.testing.io, rpc);
     defer rpc_client.deinit();
 
     const num = try rpc_client.blockNumber();
@@ -185,7 +185,7 @@ test "Utils::RPCClient: Get Block Number" {
 }
 
 test "Utils::RPCClient: Get Chain ID" {
-    var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
+    var rpc_client = try RPCClient.init(std.testing.allocator, std.testing.io, rpc);
     defer rpc_client.deinit();
 
     const num = try rpc_client.chainId();
@@ -193,7 +193,7 @@ test "Utils::RPCClient: Get Chain ID" {
 }
 
 test "Utils::RPCClient: Get Balance" {
-    var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
+    var rpc_client = try RPCClient.init(std.testing.allocator, std.testing.io, rpc);
     defer rpc_client.deinit();
 
     const num = try rpc_client.getBalance(0xcfab2d1bcdd5f8c0f4e7fdb1900550ab15df78f9);
@@ -201,15 +201,15 @@ test "Utils::RPCClient: Get Balance" {
 }
 
 test "Utils::RPCClient: Get Nonce" {
-    var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
+    var rpc_client = try RPCClient.init(std.testing.allocator, std.testing.io, rpc);
     defer rpc_client.deinit();
 
     const num = try rpc_client.getTransactionCount(0xcfab2d1bcdd5f8c0f4e7fdb1900550ab15df78f9);
-    try std.testing.expectEqual(16, num);
+    try std.testing.expectEqual(18, num);
 }
 
 test "Utils::RPCClient: Get Code" {
-    var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
+    var rpc_client = try RPCClient.init(std.testing.allocator, std.testing.io, rpc);
     defer rpc_client.deinit();
 
     const code = try rpc_client.getCode(0xad9599131cdd44b1ef6662f8e724142d9aa464bb);
@@ -222,7 +222,7 @@ test "Utils::RPCClient: Get Code" {
 }
 
 test "Utils::RPCClient: Get Storage" {
-    var rpc_client = try RPCClient.init(std.testing.allocator, rpc);
+    var rpc_client = try RPCClient.init(std.testing.allocator, std.testing.io, rpc);
     defer rpc_client.deinit();
 
     const storage_a = try rpc_client.getStorageAt(0xe592427a0aece92de3edee1f18e0157c05861564, 0);

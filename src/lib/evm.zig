@@ -36,22 +36,24 @@ const EVMRunParams = struct {
 };
 
 allocator: std.mem.Allocator,
+io: std.Io,
 context: *Context,
 rpc_client: ?RPCClient = null,
 fork_url: ?[]const u8,
 fork_block: u64,
 
-pub fn init(allocator: std.mem.Allocator, initializer: EVMInitializer) EVM {
+pub fn init(allocator: std.mem.Allocator, io: std.Io, initializer: EVMInitializer) EVM {
     return .{
         .allocator = allocator,
+        .io = io,
         .context = initializer.context,
         .fork_url = null,
         .fork_block = 0,
     };
 }
 
-pub fn fork_init(allocator: std.mem.Allocator, initializer: EVMForkInitializer) !EVM {
-    var client = try RPCClient.init(allocator, initializer.fork_url);
+pub fn fork_init(allocator: std.mem.Allocator, io: std.Io, initializer: EVMForkInitializer) !EVM {
+    var client = try RPCClient.init(allocator, io, initializer.fork_url);
     var block = Block{};
     block.number = if (initializer.fork_block == 0) try client.blockNumber() else initializer.fork_block;
     var chain = Chain{};
@@ -63,6 +65,7 @@ pub fn fork_init(allocator: std.mem.Allocator, initializer: EVMForkInitializer) 
     });
     return .{
         .allocator = allocator,
+        .io = io,
         .context = initializer.context,
         .rpc_client = client,
         .fork_url = initializer.fork_url,
@@ -111,10 +114,10 @@ pub fn run(self: *EVM, run_params: EVMRunParams) !?[]u8 {
     const address_state = self.context.state.get(self.context.address).?;
     address_state.is_warm = true;
     try self.context.address_accesslist.put(self.context.address, {});
-    var timer: std.time.Timer = undefined;
+    var start_ts: std.Io.Timestamp = undefined;
 
     if (config.bench) {
-        timer = try std.time.Timer.start();
+        start_ts = .now(self.io, .awake);
     }
     while (self.context.status == .Continue) {
         try self.context.runNextOperation();
@@ -146,7 +149,8 @@ pub fn run(self: *EVM, run_params: EVMRunParams) !?[]u8 {
         }
     }
     if (config.bench) {
-        std.debug.print("elapsed: {d}ms\n", .{@as(f64, @floatFromInt(timer.read())) / 1000000});
+        const elapsed = start_ts.untilNow(self.io, .awake);
+        std.debug.print("elapsed: {d}ms\n", .{@as(f64, @floatFromInt(elapsed.toNanoseconds())) / 1000000});
     }
     return self.context.return_data;
 }
@@ -199,7 +203,7 @@ fn testSingleContractCall(code_string: []const u8, calldata_string: []const u8) 
     defer context.deinit();
     var address_state = AddressState.init(std.testing.allocator, .{ .code = code });
     try context.state.put(1, &address_state);
-    var evm = EVM.init(std.testing.allocator, .{
+    var evm = EVM.init(std.testing.allocator, std.testing.io, .{
         .context = &context,
     });
     defer evm.deinit();
@@ -260,7 +264,7 @@ test "EVM: Call" {
     var address_state_b = AddressState.init(std.testing.allocator, .{ .code = code_b });
     try context.state.put(0xa, &address_state_a);
     try context.state.put(0xb, &address_state_b);
-    var evm = EVM.init(std.testing.allocator, .{
+    var evm = EVM.init(std.testing.allocator, std.testing.io, .{
         .context = &context,
     });
     defer evm.deinit();

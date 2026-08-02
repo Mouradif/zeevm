@@ -10,7 +10,7 @@ const EVM = zee.EVM;
 
 const starting_gas = 3_000_000_000;
 
-pub fn main() !void {
+pub fn main(io: std.Io) !void {
     std.debug.print("Running snailtracer example!\n", .{});
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -23,7 +23,7 @@ pub fn main() !void {
     defer context.deinit();
     var address_state = AddressState.init(allocator, .{ .code = @constCast(code) });
     try context.state.put(1, &address_state);
-    var evm = EVM.init(allocator, .{
+    var evm = EVM.init(allocator, io, .{
         .context = &context,
     });
     defer evm.deinit();
