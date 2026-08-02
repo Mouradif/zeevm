@@ -9,14 +9,14 @@ const ContextStatus = zee.ContextStatus;
 const RPCClient = zee.RPCClient;
 const EVM = zee.EVM;
 
-pub fn main() !void {
+pub fn main(io: std.Io) !void {
     std.debug.print("Running replay example!\n", .{});
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
     var context = Context.init(allocator, .{});
-    var evm = try EVM.fork_init(allocator, .{
-        .fork_url = "http://geth.metal:10544",
+    var evm = try EVM.fork_init(allocator, io, .{
+        .fork_url = "https://rpc.flashbots.net/fast",
         .context = &context,
     });
     std.debug.print("EVM initialized\n", .{});
